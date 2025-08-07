@@ -24,7 +24,7 @@
         - name: grafana GUI
           url: "https://grafana.{{ domain_lan }}"
         - name: nummus GUI
-          url: "https://nummus.{{ domain_lan }}/login"
+          url: "https://nummus.{{ domain_lan }}/status"
       uptime_monitors_ping:
         - name: DNS Primary Ping
           ip: "{{ ip_dns_0 }}"

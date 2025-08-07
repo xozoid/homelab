@@ -43,5 +43,3 @@
     state: started
     volumes:
       - /etc/nummus:/data
-  notify:
-    - Migrate nummus

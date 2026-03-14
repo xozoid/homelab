@@ -14,6 +14,8 @@
         - local stratum 1
         - "bindaddress {{ ip_ntp }}"
         - "bindcmdaddress {{ ip_ntp }}"
+        - makestep 1 3
+        - rtcsync
       chrony_acl_rules:
         - "deny all"
         - "allow {{ vlan_management.ip }}"

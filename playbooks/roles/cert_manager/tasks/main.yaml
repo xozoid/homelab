@@ -45,7 +45,8 @@
     mode: "0600"
 - name: Create list of domains
   ansible.builtin.set_fact:
-    certs: "{{ (certs | default([])) + cert }}"
+    cert_manager_certs: "{{ (certs | default([])) +
+      cert }}"
   vars:
     certs_default:
       - email: "{{ cert_manager_email }}"
@@ -58,7 +59,8 @@
   loop: "{{ cert_manager_services }}"
 - name: Create copy certificates script
   ansible.builtin.template:
-    dest: "/etc/letsencrypt/renewal-hooks/deploy/{{ file }}"
+    dest: "/etc/letsencrypt/renewal-hooks/deploy/{{
+      file }}"
     src: deploy-sh.jinja
     mode: "0755"
   vars:
@@ -70,15 +72,15 @@
   vars:
     certbot_install_method: "snap"
     certbot_create_standalone_stop_services: []
-    certbot_certs: "{{ certs }}"
+    certbot_certs: "{{ cert_manager_certs }}"
     certbot_create_method: standalone
     certbot_create_if_missing: true
     certbot_auto_renew: false
     certbot_create_command: >-
-      certbot certonly --noninteractive
-      --dns-cloudflare --dns-cloudflare-propagation-seconds 30 --agree-tos
-      --email {{ cert_item.email | default(cert_manager_email) }}
-      -d {{ cert_item.domains | join(',') }}
+      certbot certonly --noninteractive --dns-cloudflare
+      --dns-cloudflare-propagation-seconds 30 --agree-tos
+      --email {{ cert_item.email | default(cert_manager_email)
+      }} -d {{ cert_item.domains | join(',') }}
 - name: Create cron job for certbot renewal
   ansible.builtin.cron:
     name: certbot automatic renewal

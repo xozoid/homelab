@@ -70,7 +70,8 @@
       --storage.path=/alertmanager
     networks:
       - name: "{{ prometheus_alertmanager_network }}"
-        ipv4_address: "{{ prometheus_alertmanager_ip }}"
+        ipv4_address: "{{ prometheus_alertmanager_ip
+          }}"
     dns_servers:
       - "{{ ip_dns_0 }}"
       - "{{ ip_dns_1 }}"
@@ -90,8 +91,7 @@
     name: prometheus
     command: >-
       --config.file=/etc/prometheus/prometheus.yaml
-      --storage.tsdb.path=/prometheus
-      --storage.tsdb.retention.time=1y
+      --storage.tsdb.path=/prometheus --storage.tsdb.retention.time=1y
       --web.console.libraries=/usr/share/prometheus/console_libraries
       --web.console.templates=/usr/share/prometheus/consoles
     networks:
@@ -147,11 +147,12 @@
   with_items:
     - /etc/prometheus/alertmanager.yaml
     - /etc/prometheus/prometheus.yaml
-  register: docker_file_mounts
+  register: prometheus_docker_file_mounts
 - name: Assert docker host file mounts
   ansible.builtin.assert:
     that: "item.stat.isreg"
-  with_items: "{{ docker_file_mounts.results }}"
+  with_items: "{{ prometheus_docker_file_mounts.results
+    }}"
   no_log: true
 
 # Configure grafana

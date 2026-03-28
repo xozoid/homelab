@@ -1,11 +1,11 @@
 ---
 - name: Copy pfsense certificate importer
-  hosts: scruffy
+  hosts: farnsworth
   tasks:
     - name: Copy pfsense certificate importer
       ansible.builtin.command: >
-        scp files/pfsense-import-certificate.php {{ user }}@{{ host }}:{{
-        dest }}
+        scp files/pfsense-import-certificate.php {{
+        user }}@{{ host }}:{{ dest }}
       vars:
         host: pfsense.nibbler
         user: "{{ hostvars[host].ansible_user }}"
@@ -17,7 +17,8 @@
     - role: cert_manager
       become: true
       cert_manager_email: "{{ sysadmin_email }}"
-      cert_manager_api_token: "{{ cloudflare_certbot_api_token }}"
+      cert_manager_api_token: "{{ cloudflare_certbot_api_token
+        }}"
       cert_manager_discord: "{{ discord }}"
       cert_manager_services:
         - domain: "*.{{ domain_lan }}"
@@ -37,7 +38,7 @@
               user: root
               sudo: false
               cmd: >-
-                php /root/pfsense-import-certificate.php /root/fullchain.pem
-                /root/privkey.pem
+                php /root/pfsense-import-certificate.php
+                /root/fullchain.pem /root/privkey.pem
               dest_cert: /root/fullchain.pem
               dest_key: /root/privkey.pem

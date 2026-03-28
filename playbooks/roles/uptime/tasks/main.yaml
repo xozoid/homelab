@@ -44,10 +44,10 @@
     api_url: "{{ uptime_url }}"
     api_username: admin
     api_password: "{{ uptime_password }}"
-  register: result
+  register: uptime_result
 - name: Extract token
   ansible.builtin.set_fact:
-    uptime_token: "{{ result.token }}"
+    uptime_token: "{{ uptime_result.token }}"
 - name: Setup notifications
   lucasheld.uptime_kuma.notification:
     api_url: "{{ uptime_url }}"
@@ -87,7 +87,8 @@
     api_token: "{{ uptime_token }}"
     name: "{{ item.name }}"
     type: dns
-    hostname: "{{ item.hostname | default('google.com') }}"
+    hostname: "{{ item.hostname | default('google.com')
+      }}"
     dns_resolve_server: "{{ item.ip }}"
     port: 53
     state: present

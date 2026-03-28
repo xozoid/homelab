@@ -1,6 +1,4 @@
 ---
-ansible_connection: local
-
 eth_management_mac: "{{ vault_hw_mac_eth_f }}"
 ip_management: "{{ vlan_management.ip }}.100"
 ip_cadvisor: "{{ vlan_management.ip }}.109"

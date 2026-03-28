@@ -1,2 +1,4 @@
 ---
+ansible_connection: local
+
 ip_management: "{{ vlan_management.ip }}.202"

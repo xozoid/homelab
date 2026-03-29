@@ -25,6 +25,8 @@
           url: "https://grafana.{{ domain_lan }}"
         - name: nummus GUI
           url: "https://nummus.{{ domain_lan }}/status"
+        - name: home assistant GUI
+          url: "https://home.{{ domain_lan }}/status"
       uptime_monitors_ping:
         - name: DNS Primary Ping
           ip: "{{ ip_dns_0 }}"
@@ -69,6 +71,8 @@
           ip: "{{ ip_beehive }}"
         - name: nummus Ping
           ip: "{{ ip_nummus }}"
+        - name: home assistant Ping
+          ip: "{{ ip_home_assistant }}"
       uptime_monitors_dns:
         - name: DNS Primary DNS
           ip: "{{ ip_dns_0 }}"

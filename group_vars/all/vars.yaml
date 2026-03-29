@@ -68,6 +68,8 @@ ip_pve_exporter: "{{ vlan_management.ip }}.28"
 ip_nummus: "{{ vlan_servers.ip }}.4"
 # ip_wiki_db: "{{ vlan_servers.ip }}.20"
 
+ip_home_assistant: "{{ vlan_automation.ip }}.2"
+
 ip_dns_0: "{{ vlan_networking.ip }}.2"
 ip_dns_1: "{{ vlan_networking.ip }}.3"
 ip_ntp: "{{ vlan_networking.ip }}.4"

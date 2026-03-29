@@ -36,12 +36,6 @@ repos:
       - id: codespell
         additional_dependencies:
           - tomli
-  - repo: https://github.com/google/yamlfmt
-    rev: v0.13.0
-    hooks:
-      - id: yamlfmt
-        args: [-conf, .yamlfmt.yaml]
-        exclude: vault.yaml
   - repo: https://github.com/adrienverge/yamllint.git
     rev: v1.29.0
     hooks:

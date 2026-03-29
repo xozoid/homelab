@@ -1,5 +1,5 @@
 ---
-eth_services_mac: "{{ hw_mac_eth_2 }}"
+eth_services_mac: "{{ bridge_mac_eth_0 }}"
 
 ip_management: "{{ vlan_management.ip }}.111"
 ip_cadvisor: "{{ vlan_management.ip }}.119"

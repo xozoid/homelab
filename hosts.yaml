@@ -8,6 +8,7 @@ hw_nibbler:
     nibbler:
     vm0.nibbler:
     pfsense.nibbler:
+    haos.nibbler:
 ntp_clients:
   hosts:
     farnsworth:

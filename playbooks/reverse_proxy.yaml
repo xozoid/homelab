@@ -69,6 +69,9 @@
         - name: nummus
           ip: "{{ ip_nummus }}"
           port: 8000
+        - name: home
+          ip: "{{ ip_home_assistant }}"
+          port: 8123
 - name: Install nginx exporter
   hosts: vm0.nibbler
   roles:

@@ -15,6 +15,8 @@
           url: "https://dns1.{{ domain_lan }}"
         - name: morbo GUI
           url: "https://morbo.{{ domain_lan }}"
+        - name: linda GUI
+          url: "https://linda.{{ domain_lan }}"
         - name: nibbler GUI
           url: "https://nibbler.{{ domain_lan }}"
         - name: pfsense.nibbler GUI
@@ -26,7 +28,7 @@
         - name: nummus GUI
           url: "https://nummus.{{ domain_lan }}/status"
         - name: home assistant GUI
-          url: "https://home.{{ domain_lan }}/status"
+          url: "https://home.{{ domain_lan }}"
       uptime_monitors_ping:
         - name: DNS Primary Ping
           ip: "{{ ip_dns_0 }}"
@@ -34,6 +36,8 @@
           ip: "{{ ip_dns_1 }}"
         - name: morbo Ping
           ip: "{{ hostvars['morbo'].ip_management }}"
+        - name: linda Ping
+          ip: "{{ hostvars['linda'].ip_management }}"
         - name: nibbler Ping
           ip: "{{ hostvars['nibbler'].ip_management }}"
         - name: pfsense.nibbler Ping
@@ -41,6 +45,9 @@
         # Leela has 2s response time over HTTP, use ping only
         - name: leela Ping
           ip: "{{ hostvars['leela'].ip_management }}"
+        # Sal has 2s response time over HTTP, use ping only
+        - name: sal Ping
+          ip: "{{ hostvars['sal'].ip_management }}"
         - name: vm0.nibbler Ping
           ip: "{{ hostvars['vm0.nibbler'].ip_management }}"
         - name: scruffy Ping
@@ -57,8 +64,6 @@
           ip: "{{ ip_dns_exporter_0 }}"
         - name: dns1-exporter Ping
           ip: "{{ ip_dns_exporter_1 }}"
-        - name: speedtest-exporter Ping
-          ip: "{{ ip_speedtest_exporter }}"
         - name: ntp-exporter Ping
           ip: "{{ ip_ntp_exporter }}"
         - name: reverse-proxy Ping

@@ -2,7 +2,9 @@
 ungrouped:
   hosts:
     leela:
+    sal:
     morbo:
+    linda:
 hw_nibbler:
   hosts:
     nibbler:

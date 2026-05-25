@@ -30,8 +30,18 @@
           scheme: https
           port: 443
           header_host: "{{ hostvars['morbo'].ip_management }}"
+        # linda is WAP and requires special headers to talk through proxy
+        - name: linda
+          ip: "{{ hostvars['linda'].ip_management }}"
+          scheme: https
+          port: 443
+          header_host: "{{ hostvars['linda'].ip_management }}"
         - name: leela
           ip: "{{ hostvars['leela'].ip_management }}"
+          scheme: https
+          port: 443
+        - name: sal
+          ip: "{{ hostvars['sal'].ip_management }}"
           scheme: https
           port: 443
         - name: uptime

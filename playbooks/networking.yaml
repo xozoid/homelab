@@ -26,6 +26,13 @@
           ip: "{{ ip_management }}"
           mask: 24
           gateway: "{{ vlan_management.ip }}.1"
+        - interface: eth-bridge
+          type:
+          mode: manual
+        - interface: vmbr0
+          mode: static
+          type: bridge
+          bridge_port: eth-bridge
       ifupdown_dns_addresses:
         - "{{ ip_dns_0 }}"
         - "{{ ip_dns_1 }}"

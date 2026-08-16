@@ -2,12 +2,15 @@
 ungrouped:
   hosts:
     leela:
+    sal:
     morbo:
+    linda:
 hw_nibbler:
   hosts:
     nibbler:
     vm0.nibbler:
     pfsense.nibbler:
+    haos.nibbler:
 ntp_clients:
   hosts:
     farnsworth:

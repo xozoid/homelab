@@ -12,9 +12,10 @@
 - name: Clone nummus-importers locally
   delegate_to: localhost
   ansible.builtin.git:
-    repo: "git@github.com:WattsUp/nummus-importers.git"
+    repo: "git@github.com:xozoid/nummus-importers.git"
     dest: "/home/{{ admin }}/Code/nummus-importers"
-    version: master
+    version: main
+    key_file: /home/zoidberg/.ssh/id_ed25519_xoz
   notify:
     - Restart nummus
 - name: Copy nummus-importers
@@ -24,6 +25,8 @@
     owner: "{{ admin }}"
     group: "{{ admin }}"
     mode: "0755"
+  notify:
+    - Restart nummus
 - name: Install nummus
   community.docker.docker_container:
     name: nummus

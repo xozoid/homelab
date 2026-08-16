@@ -175,11 +175,6 @@
               target_label: instance
             - target_label: __address__
               replacement: "{{ ip_pve_exporter }}:9221"
-        - name: iot-sensors
-          static_configs:
-            - targets: ["{{ ip_beehive }}"]
-              labels:
-                host: "beehive"
         - name: nummus
           static_configs:
             - targets: ["{{ ip_nummus }}:8001"]

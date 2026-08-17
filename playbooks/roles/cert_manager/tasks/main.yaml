@@ -57,6 +57,13 @@
         domains:
           - "{{ item.domain }}"
   loop: "{{ cert_manager_services }}"
+- name: Create certificate deployment hooks directory
+  ansible.builtin.file:
+    path: /etc/letsencrypt/renewal-hooks/deploy
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
 - name: Create copy certificates script
   ansible.builtin.template:
     dest: "/etc/letsencrypt/renewal-hooks/deploy/{{
@@ -76,11 +83,17 @@
     certbot_create_method: standalone
     certbot_create_if_missing: true
     certbot_auto_renew: false
+    # NOTE: Bound ACME retries so an unavailable DNS or ACME service does not
+    # block the Ansible run indefinitely.
     certbot_create_command: >-
-      certbot certonly --noninteractive --dns-cloudflare
-      --dns-cloudflare-propagation-seconds 30 --agree-tos
-      --email {{ cert_item.email | default(cert_manager_email)
-      }} -d {{ cert_item.domains | join(',') }}
+      timeout --kill-after=30s 5m
+      certbot certonly
+      --noninteractive
+      --dns-cloudflare
+      --dns-cloudflare-propagation-seconds 30
+      --agree-tos
+      --email {{ cert_item.email | default(cert_manager_email) }}
+      -d {{ cert_item.domains | join(',') }}
 - name: Create cron job for certbot renewal
   ansible.builtin.cron:
     name: certbot automatic renewal

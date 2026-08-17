@@ -24,31 +24,28 @@
     state: started
     volumes:
       - "/etc/uptime:/app/data:rw"
-- name: Install uptime-kuma api
-  ansible.builtin.import_role:
-    name: geerlingguy.pip
-  vars:
-    pip_install_packages:
-      - name: uptime-kuma-api
-        version: "1.2.1"
 - name: Generate url
   ansible.builtin.set_fact:
     uptime_url: "http://{{ uptime_ip }}:3001"
 - name: Setup credentials
+  delegate_to: localhost
   lucasheld.uptime_kuma.setup:
     api_url: "{{ uptime_url }}"
     api_username: admin
     api_password: "{{ uptime_password }}"
 - name: Generate token
+  delegate_to: localhost
   lucasheld.uptime_kuma.login:
     api_url: "{{ uptime_url }}"
     api_username: admin
     api_password: "{{ uptime_password }}"
   register: uptime_result
 - name: Extract token
+  delegate_to: localhost
   ansible.builtin.set_fact:
     uptime_token: "{{ uptime_result.token }}"
 - name: Setup notifications
+  delegate_to: localhost
   lucasheld.uptime_kuma.notification:
     api_url: "{{ uptime_url }}"
     api_token: "{{ uptime_token }}"
@@ -59,6 +56,7 @@
     applyExisting: true
     state: present
 - name: Add HTTP monitors
+  delegate_to: localhost
   lucasheld.uptime_kuma.monitor:
     api_url: "{{ uptime_url }}"
     api_token: "{{ uptime_token }}"
@@ -71,6 +69,7 @@
       - discord
   loop: "{{ uptime_monitors_http }}"
 - name: Add ping monitors
+  delegate_to: localhost
   lucasheld.uptime_kuma.monitor:
     api_url: "{{ uptime_url }}"
     api_token: "{{ uptime_token }}"
@@ -82,6 +81,7 @@
       - discord
   loop: "{{ uptime_monitors_ping }}"
 - name: Add DNS monitors
+  delegate_to: localhost
   lucasheld.uptime_kuma.monitor:
     api_url: "{{ uptime_url }}"
     api_token: "{{ uptime_token }}"
@@ -96,6 +96,7 @@
       - discord
   loop: "{{ uptime_monitors_dns }}"
 - name: Add port monitors
+  delegate_to: localhost
   lucasheld.uptime_kuma.monitor:
     api_url: "{{ uptime_url }}"
     api_token: "{{ uptime_token }}"

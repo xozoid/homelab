@@ -1,9 +1,9 @@
 ---
-eth_management_mac: "{{ vault_hw_mac_eth_f }}"
+eth_management_mac: "{{ hw_mac_eth_f }}"
 ip_management: "{{ vlan_management.ip }}.100"
 ip_cadvisor: "{{ vlan_management.ip }}.109"
 
-eth_services_mac: "{{ vault_hw_mac_eth_1 }}"
+eth_services_mac: "{{ hw_mac_eth_1 }}"
 
 is_dns_primary: false
 is_baremetal: true
@@ -29,6 +29,3 @@ vlans_extras:
       addresses:
         - "{{ ip_dns_0 }}"
         - "{{ ip_dns_1 }}"
-
-# Vault items
-discord: "{{ vault_discord }}"

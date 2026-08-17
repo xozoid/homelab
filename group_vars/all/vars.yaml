@@ -90,6 +90,7 @@ uptime_discord: "{{ vault_uptime_discord }}"
 
 cloudflare_certbot_api_token: "{{ vault_cloudflare_certbot_api_token }}"
 cloudflare_ddns_api_token: "{{ vault_cloudflare_ddns_api_token }}"
+certbot_discord: "{{ vault_certbot_discord }}"
 
 alertmanager_discord: "{{ vault_alertmanager_discord }}"
 

@@ -1,7 +1,7 @@
 ---
-# scruffy needs hostnames to bare metal in order to ssh to them
-- name: Generate /etc/hosts file on scruffy
-  hosts: scruffy
+# vm0.nibbler needs hostnames to bare metal in order to SSH to them.
+- name: Generate /etc/hosts file on vm0.nibbler
+  hosts: vm0.nibbler
   roles:
     - role: etc_hosts
       etc_hosts_list: "{{ groups['etc_hosts'] }}"
@@ -30,7 +30,7 @@
         - host: pfsense
           ip: "{{ hostvars['pfsense.nibbler'].ip_management }}"
 - name: Install dynamic DNS
-  hosts: scruffy
+  hosts: vm0.nibbler
   tasks:
     - name: Install cloudflare-ddns
       become: true

@@ -5,6 +5,7 @@ ungrouped:
     sal:
     morbo:
     linda:
+    scruffy:
 hw_nibbler:
   hosts:
     nibbler:
@@ -18,30 +19,25 @@ ntp_clients:
     vm0.nibbler:
 etc_hosts:
   hosts:
-    scruffy:
     farnsworth:
     nibbler:
     vm0.nibbler:
     pfsense.nibbler:
 eth_netplan:
   hosts:
-    scruffy:
     vm0.nibbler:
 eth_ifupdown:
   hosts:
     nibbler:
 nodes:
   hosts:
-    scruffy:
     nibbler:
     vm0.nibbler:
 docker:
   hosts:
-    scruffy:
     vm0.nibbler:
 nameservers:
   hosts:
-    scruffy:
     vm0.nibbler:
 pve:
   hosts:

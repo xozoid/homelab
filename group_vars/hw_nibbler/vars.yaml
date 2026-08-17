@@ -1,7 +1,0 @@
----
-hw_mac_eth_0: "{{ vault_hw_mac_eth_0 }}"
-hw_mac_eth_1: "{{ vault_hw_mac_eth_1 }}"
-hw_mac_eth_2: "{{ vault_hw_mac_eth_2 }}"
-hw_mac_eth_3: "{{ vault_hw_mac_eth_3 }}"
-
-bridge_mac_eth_0: "{{ vault_bridge_mac_eth_0 }}"

@@ -156,11 +156,18 @@
   no_log: true
 
 # Configure grafana
-- name: Wait for grafana to start
-  ansible.builtin.wait_for:
-    host: "{{ prometheus_grafana_ip }}"
-    port: 3000
+- name: Wait for Grafana HTTP API to start
+  delegate_to: localhost
+  ansible.builtin.uri:
+    url: "http://{{ prometheus_grafana_ip }}:3000/api/health"
+    status_code: 200
+    timeout: 5
+  register: prometheus_grafana_health
+  retries: 30
+  delay: 2
+  until: prometheus_grafana_health.status == 200
 - name: Rename grafana organization
+  delegate_to: localhost
   ansible.builtin.uri:
     url: "http://{{ prometheus_grafana_ip }}:3000/api/orgs/1"
     url_username: "{{ prometheus_grafana_user }}"

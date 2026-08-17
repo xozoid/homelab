@@ -1,6 +1,6 @@
 ---
 - name: Create exporters
-  hosts: scruffy
+  hosts: vm0.nibbler
   tasks:
     - name: Install pihole-exporter for dns0
       become: true
@@ -129,7 +129,7 @@
           - "/var/lib/docker/:/var/lib/docker:ro"
           - "/dev/disk/:/dev/disk:ro"
 - name: Setup prometheus
-  hosts: scruffy
+  hosts: vm0.nibbler
   roles:
     - role: prometheus
       become: true

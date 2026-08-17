@@ -1,38 +1,38 @@
 ---
-- name: Setup NTP server
-  hosts: scruffy
-  roles:
-    - role: openstack.chrony
-      become: true
-      chrony_config_file_location: /etc/chrony/chrony.conf
-      chrony_package_name: chrony
-      # Fallback
-      chrony_ntp_servers: ["127.0.0.1"]
-      chrony_extra_options:
-        - refclock PHC /dev/ptp0 offset 0
-        # Stratum 1 since scruffy has a GNSS clock connected via IRIG
-        - local stratum 1
-        - "bindaddress {{ ip_ntp }}"
-        - "bindcmdaddress {{ ip_ntp }}"
-        - makestep 1 3
-        - rtcsync
-      chrony_acl_rules:
-        - "deny all"
-        - "allow {{ vlan_management.ip }}"
-        - "allow {{ vlan_servers.ip }}"
-        - "allow {{ vlan_security.ip }}"
-        - "allow {{ vlan_automation.ip }}"
-        - "allow {{ vlan_networking.ip }}"
-        - "allow {{ vlan_trusted.ip }}"
-        - "allow {{ vlan_iot.ip }}"
-        - "allow {{ vlan_guest.ip }}"
-        - "cmddeny all"
-        - "cmdallow {{ vlan_management.ip }}"
-  tasks:
-    - name: Set timezone
-      become: true
-      community.general.timezone:
-        name: "{{ timezone }}"
+# - name: Setup NTP server
+#   hosts: scruffy
+#   roles:
+#     - role: openstack.chrony
+#       become: true
+#       chrony_config_file_location: /etc/chrony/chrony.conf
+#       chrony_package_name: chrony
+#       # Fallback
+#       chrony_ntp_servers: ["127.0.0.1"]
+#       chrony_extra_options:
+#         - refclock PHC /dev/ptp0 offset 0
+#         # Stratum 1 since scruffy has a GNSS clock connected via IRIG
+#         - local stratum 1
+#         - "bindaddress {{ ip_ntp }}"
+#         - "bindcmdaddress {{ ip_ntp }}"
+#         - makestep 1 3
+#         - rtcsync
+#       chrony_acl_rules:
+#         - "deny all"
+#         - "allow {{ vlan_management.ip }}"
+#         - "allow {{ vlan_servers.ip }}"
+#         - "allow {{ vlan_security.ip }}"
+#         - "allow {{ vlan_automation.ip }}"
+#         - "allow {{ vlan_networking.ip }}"
+#         - "allow {{ vlan_trusted.ip }}"
+#         - "allow {{ vlan_iot.ip }}"
+#         - "allow {{ vlan_guest.ip }}"
+#         - "cmddeny all"
+#         - "cmdallow {{ vlan_management.ip }}"
+#   tasks:
+#     - name: Set timezone
+#       become: true
+#       community.general.timezone:
+#         name: "{{ timezone }}"
 - name: Setup NTP clients
   hosts: ntp_clients
   roles:

@@ -1,6 +1,6 @@
 ---
 - name: Setup uptime monitor
-  hosts: scruffy
+  hosts: vm0.nibbler
   roles:
     - role: uptime
       become: true
@@ -95,9 +95,6 @@
         - name: vm0.nibbler node-exporter
           ip: "{{ hostvars['vm0.nibbler'].ip_management }}"
           port: 9100
-        - name: scruffy cadvisor
-          ip: "{{ hostvars['scruffy'].ip_cadvisor }}"
-          port: 8080
         - name: vm0.nibbler cadvisor
           ip: "{{ hostvars['vm0.nibbler'].ip_cadvisor }}"
           port: 8080

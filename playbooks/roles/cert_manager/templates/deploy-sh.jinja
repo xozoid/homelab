@@ -13,26 +13,27 @@ then
     {% for host_item in item.hosts %}
     echo "Deploying {{ item.domain }} to {{ host_item.host }}"
 
-    ssh_arg="-i /home/{{ ansible_user }}/.ssh/id_ed25519"
+    # NOTE: A failed deployment must not keep Certbot running indefinitely.
+    ssh_arg="-i /home/{{ ansible_user }}/.ssh/id_ed25519 -o BatchMode=yes -o ConnectTimeout=15 -o ConnectionAttempts=1"
     ssh_host={{ host_item.user | default(ansible_user) }}@{{ host_item.host }}
 
     # Copy to host
     {% if host_item.sudo | default(true) %}
-    ssh $ssh_arg $ssh_host "sudo touch {{ host_item.dest_cert }}; sudo chmod 0640 {{ host_item.dest_cert }}; echo '$cert' | sudo tee {{ host_item.dest_cert }} > /dev/null"
-    ssh $ssh_arg $ssh_host "sudo touch {{ host_item.dest_key }}; sudo chmod 0640 {{ host_item.dest_key }}; echo '$key' | sudo tee {{ host_item.dest_key }} > /dev/null"
+    timeout 30s ssh $ssh_arg $ssh_host "sudo touch {{ host_item.dest_cert }}; sudo chmod 0640 {{ host_item.dest_cert }}; echo '$cert' | sudo tee {{ host_item.dest_cert }} > /dev/null"
+    timeout 30s ssh $ssh_arg $ssh_host "sudo touch {{ host_item.dest_key }}; sudo chmod 0640 {{ host_item.dest_key }}; echo '$key' | sudo tee {{ host_item.dest_key }} > /dev/null"
     {% else %}
-    ssh $ssh_arg $ssh_host "touch {{ host_item.dest_cert }}; chmod 0640 {{ host_item.dest_cert }}; echo '$cert' | tee {{ host_item.dest_cert }} > /dev/null"
-    ssh $ssh_arg $ssh_host "touch {{ host_item.dest_key }}; chmod 0640 {{ host_item.dest_key }}; echo '$key' | tee {{ host_item.dest_key }} > /dev/null"
+    timeout 30s ssh $ssh_arg $ssh_host "touch {{ host_item.dest_cert }}; chmod 0640 {{ host_item.dest_cert }}; echo '$cert' | tee {{ host_item.dest_cert }} > /dev/null"
+    timeout 30s ssh $ssh_arg $ssh_host "touch {{ host_item.dest_key }}; chmod 0640 {{ host_item.dest_key }}; echo '$key' | tee {{ host_item.dest_key }} > /dev/null"
     {% endif %}
 
     # Run post renew command
     {% if host_item.cmd is defined %}
-    ssh $ssh_arg $ssh_host "{{ host_item.cmd }}"
+    timeout 30s ssh $ssh_arg $ssh_host "{{ host_item.cmd }}"
     {% endif %}
     {% endfor %}
 
     # Send alert to discord
-    curl -i -H "Accept: application/json" -H "Content-Type:application/json" -X POST --data "{\"content\": \"Renewed cert for {{ item.domain }}\"}" {{ cert_manager_discord }} > /dev/null
+    curl --connect-timeout 10 --max-time 30 -i -H "Accept: application/json" -H "Content-Type:application/json" -X POST --data "{\"content\": \"Renewed cert for {{ item.domain }}\"}" {{ cert_manager_discord }} > /dev/null
 fi
 
 exit 0

@@ -12,14 +12,14 @@
         dest: /root/pfsense-import-certificate.php
       changed_when: true
 - name: Setup certificate manager
-  hosts: scruffy
+  hosts: vm0.nibbler
   roles:
     - role: cert_manager
       become: true
       cert_manager_email: "{{ sysadmin_email }}"
       cert_manager_api_token: "{{ cloudflare_certbot_api_token
         }}"
-      cert_manager_discord: "{{ discord }}"
+      cert_manager_discord: "{{ certbot_discord }}"
       cert_manager_services:
         - domain: "*.{{ domain_lan }}"
           hosts:

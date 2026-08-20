@@ -29,6 +29,66 @@
     owner: root
     group: root
     mode: "0755"
+- name: Create certificate deployment SSH directory
+  ansible.builtin.file:
+    path: /root/.ssh
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+- name: Create certificate deployment SSH key
+  ansible.builtin.command:
+    argv:
+      - ssh-keygen
+      - -q
+      - -t
+      - ed25519
+      - -N
+      - ""
+      - -f
+      - /root/.ssh/id_ed25519
+    creates: /root/.ssh/id_ed25519
+- name: Read certificate deployment public key
+  ansible.builtin.slurp:
+    src: /root/.ssh/id_ed25519.pub
+  register: cert_manager_deployment_ssh_public_key
+- name: Authorize certificate deployment key on managed hosts
+  ansible.posix.authorized_key:
+    user: "{{ host_item.user | default(hostvars[host_item.host].ansible_user) }}"
+    key: "{{ cert_manager_deployment_ssh_public_key.content | b64decode }}"
+    comment: cert-manager@vm0.nibbler
+    manage_dir: true
+    state: present
+  become: "{{ host_item.sudo | default(true) }}"
+  delegate_to: "{{ host_item.host }}"
+  loop: "{{ cert_manager_services | subelements('hosts') }}"
+  loop_control:
+    label: "{{ host_item.host }}"
+  vars:
+    host_item: "{{ item.1 }}"
+  when: hostvars[host_item.host].cert_manager_has_python | default(true)
+- name: Authorize certificate deployment key on hosts without Python
+  # NOTE: pfSense has no Python interpreter, so Ansible modules cannot run on it.
+  ansible.builtin.raw: |
+    install -d -m 0700 /root/.ssh
+    touch /root/.ssh/authorized_keys
+    chmod 0600 /root/.ssh/authorized_keys
+    if grep -qxF -- {{ cert_manager_deployment_ssh_public_key.content | b64decode | quote }} /root/.ssh/authorized_keys; then
+      echo unchanged
+    else
+      printf '%s\n' {{ cert_manager_deployment_ssh_public_key.content | b64decode | quote }} >> /root/.ssh/authorized_keys
+      echo changed
+    fi
+  become: false
+  changed_when: "'changed' in cert_manager_deployment_ssh_key_result.stdout"
+  delegate_to: "{{ host_item.host }}"
+  loop: "{{ cert_manager_services | subelements('hosts') }}"
+  loop_control:
+    label: "{{ host_item.host }}"
+  register: cert_manager_deployment_ssh_key_result
+  vars:
+    host_item: "{{ item.1 }}"
+  when: not (hostvars[host_item.host].cert_manager_has_python | default(true))
 - name: Copy certbot configuration
   ansible.builtin.template:
     src: cli-ini.jinja
@@ -45,8 +105,7 @@
     mode: "0600"
 - name: Create list of domains
   ansible.builtin.set_fact:
-    cert_manager_certs: "{{ (certs | default([])) +
-      cert }}"
+    cert_manager_certs: "{{ (certs | default([])) + cert }}"
   vars:
     certs_default:
       - email: "{{ cert_manager_email }}"
@@ -66,8 +125,7 @@
     mode: "0755"
 - name: Create copy certificates script
   ansible.builtin.template:
-    dest: "/etc/letsencrypt/renewal-hooks/deploy/{{
-      file }}"
+    dest: "/etc/letsencrypt/renewal-hooks/deploy/{{ file }}"
     src: deploy-sh.jinja
     mode: "0755"
   vars:
@@ -86,20 +144,12 @@
     # NOTE: Bound ACME retries so an unavailable DNS or ACME service does not
     # block the Ansible run indefinitely.
     certbot_create_command: >-
-      timeout --kill-after=30s 5m
-      certbot certonly
-      --noninteractive
-      --dns-cloudflare
-      --dns-cloudflare-propagation-seconds 30
-      --agree-tos
-      --email {{ cert_item.email | default(cert_manager_email) }}
-      -d {{ cert_item.domains | join(',') }}
+      timeout --kill-after=30s 5m certbot certonly --noninteractive --dns-cloudflare --dns-cloudflare-propagation-seconds 30 --agree-tos --email {{ cert_item.email | default(cert_manager_email) }} -d {{ cert_item.domains | join(',') }}
 - name: Create cron job for certbot renewal
   ansible.builtin.cron:
     name: certbot automatic renewal
     job: >-
-      /usr/bin/certbot renew --noninteractive --quiet
-      --dns-cloudflare-propagation-seconds 30
+      /usr/bin/certbot renew --noninteractive --quiet --dns-cloudflare-propagation-seconds 30
     minute: 30
     hour: 3
     user: root

@@ -13,8 +13,17 @@ then
     {% for host_item in item.hosts %}
     echo "Deploying {{ item.domain }} to {{ host_item.host }}"
 
+    {% if host_item.host == inventory_hostname %}
+    # NOTE: The certificate manager cannot SSH to itself on vm0.nibbler.
+    touch {{ host_item.dest_cert }}
+    chmod 0640 {{ host_item.dest_cert }}
+    cat "$cert_folder/fullchain.pem" > {{ host_item.dest_cert }}
+    touch {{ host_item.dest_key }}
+    chmod 0640 {{ host_item.dest_key }}
+    cat "$cert_folder/privkey.pem" > {{ host_item.dest_key }}
+    {% else %}
     # NOTE: A failed deployment must not keep Certbot running indefinitely.
-    ssh_arg="-i /home/{{ ansible_user }}/.ssh/id_ed25519 -o BatchMode=yes -o ConnectTimeout=15 -o ConnectionAttempts=1"
+    ssh_arg="-i /root/.ssh/id_ed25519 -o BatchMode=yes -o ConnectTimeout=15 -o ConnectionAttempts=1 -o StrictHostKeyChecking=accept-new"
     ssh_host={{ host_item.user | default(ansible_user) }}@{{ host_item.host }}
 
     # Copy to host
@@ -29,6 +38,11 @@ then
     # Run post renew command
     {% if host_item.cmd is defined %}
     timeout 30s ssh $ssh_arg $ssh_host "{{ host_item.cmd }}"
+    {% endif %}
+    {% endif %}
+
+    {% if host_item.host == inventory_hostname and host_item.cmd is defined %}
+    {{ host_item.cmd }}
     {% endif %}
     {% endfor %}
 

@@ -4,8 +4,8 @@
   tasks:
     - name: Copy pfsense certificate importer
       ansible.builtin.command: >
-        scp files/pfsense-import-certificate.php {{
-        user }}@{{ host }}:{{ dest }}
+        scp files/pfsense-import-certificate.php {{ user }}@{{ host }}:{{ dest }}
+
       vars:
         host: pfsense.nibbler
         user: "{{ hostvars[host].ansible_user }}"
@@ -17,15 +17,14 @@
     - role: cert_manager
       become: true
       cert_manager_email: "{{ sysadmin_email }}"
-      cert_manager_api_token: "{{ cloudflare_certbot_api_token
-        }}"
+      cert_manager_api_token: "{{ cloudflare_certbot_api_token }}"
       cert_manager_discord: "{{ certbot_discord }}"
       cert_manager_services:
         - domain: "*.{{ domain_lan }}"
           hosts:
             # For reverse-proxy/
             - host: vm0.nibbler
-              cmd: sudo docker restart reverse-proxy
+              cmd: docker restart reverse-proxy
               dest_cert: /etc/nginx/certs/ssl.pem
               dest_key: /etc/nginx/certs/ssl.key
             # For proxmox GUI
@@ -38,7 +37,6 @@
               user: root
               sudo: false
               cmd: >-
-                php /root/pfsense-import-certificate.php
-                /root/fullchain.pem /root/privkey.pem
+                php /root/pfsense-import-certificate.php /root/fullchain.pem /root/privkey.pem
               dest_cert: /root/fullchain.pem
               dest_key: /root/privkey.pem

@@ -1,6 +1,6 @@
 ---
 ansible_user: "root"
-
+cert_manager_has_python: false
 eth_wan_mac: "{{ hw_mac_eth_0 }}"
 eth_lan_mac: "{{ hw_mac_eth_1 }}"
 ip_management: "{{ vlan_management.ip }}.1"

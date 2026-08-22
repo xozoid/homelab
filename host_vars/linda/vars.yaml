@@ -10,7 +10,6 @@ netgear_wax620_radio_settings:
     tx_power_percent: 25
     channel_width_mhz: 20
     channel: 11
-    beamforming: true
   wlan1:
     enabled: true
     mode: 11ax
@@ -18,4 +17,3 @@ netgear_wax620_radio_settings:
     tx_power_percent: 4
     channel_width_mhz: 40
     channel: 124
-    beamforming: true

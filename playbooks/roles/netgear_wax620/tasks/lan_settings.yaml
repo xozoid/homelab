@@ -24,6 +24,7 @@
     timeout: "{{ netgear_wax620_timeout_s }}"
     validate_certs: "{{ netgear_wax620_validate_certs }}"
   register: netgear_wax620_lan_settings_response
+  no_log: true
   changed_when: false
   failed_when: >-
     (netgear_wax620_lan_settings_response.content | from_json).status | default(-1) | int != 0
@@ -69,6 +70,7 @@
     timeout: "{{ netgear_wax620_lan_update_timeout_s }}"
     validate_certs: "{{ netgear_wax620_validate_certs }}"
   register: netgear_wax620_lan_settings_update
+  no_log: true
   when: >-
     netgear_wax620_lan_settings_current != netgear_wax620_lan_settings_desired
   changed_when: true

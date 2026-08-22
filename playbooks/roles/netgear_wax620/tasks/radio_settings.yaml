@@ -15,11 +15,13 @@
     timeout: "{{ netgear_wax620_timeout_s }}"
     validate_certs: "{{ netgear_wax620_validate_certs }}"
   register: netgear_wax620_radio_settings_response
+  no_log: true
   changed_when: false
   failed_when: >-
     (netgear_wax620_radio_settings_response.content | from_json).status | default(-1) | int != 0
 - name: Extract current WAX620 radio settings
   ansible.builtin.set_fact:
+    # NOTE: The radio getter omits beamForming, so the role cannot manage it idempotently.
     netgear_wax620_radio_settings_current:
       wlan0:
         radioStatus: "{{ (netgear_wax620_radio_settings_response.content | from_json).system.wlanSettings.wlanSettingTable.wlan0.radioStatus }}"
@@ -28,7 +30,6 @@
         txPower: "{{ (netgear_wax620_radio_settings_response.content | from_json).system.wlanSettings.wlanSettingTable.wlan0.txPower }}"
         channel: "{{ (netgear_wax620_radio_settings_response.content | from_json).system.wlanSettings.wlanSettingTable.wlan0.channel }}"
         channelWidth: "{{ (netgear_wax620_radio_settings_response.content | from_json).system.wlanSettings.wlanSettingTable.wlan0.channelWidth }}"
-        beamForming: "{{ (netgear_wax620_radio_settings_response.content | from_json).system.wlanSettings.wlanSettingTable.wlan0.beamForming | default(netgear_wax620_radio_settings.wlan0.beamforming | ternary('1', '0')) }}"
       wlan1:
         radioStatus: "{{ (netgear_wax620_radio_settings_response.content | from_json).system.wlanSettings.wlanSettingTable.wlan1.radioStatus }}"
         operateMode: "{{ (netgear_wax620_radio_settings_response.content | from_json).system.wlanSettings.wlanSettingTable.wlan1.operateMode }}"
@@ -36,7 +37,6 @@
         txPower: "{{ (netgear_wax620_radio_settings_response.content | from_json).system.wlanSettings.wlanSettingTable.wlan1.txPower }}"
         channel: "{{ (netgear_wax620_radio_settings_response.content | from_json).system.wlanSettings.wlanSettingTable.wlan1.channel }}"
         channelWidth: "{{ (netgear_wax620_radio_settings_response.content | from_json).system.wlanSettings.wlanSettingTable.wlan1.channelWidth }}"
-        beamForming: "{{ (netgear_wax620_radio_settings_response.content | from_json).system.wlanSettings.wlanSettingTable.wlan1.beamForming | default(netgear_wax620_radio_settings.wlan1.beamforming | ternary('1', '0')) }}"
 - name: Set desired WAX620 radio settings
   ansible.builtin.set_fact:
     netgear_wax620_radio_settings_desired:
@@ -47,7 +47,6 @@
         txPower: "{{ netgear_wax620_radio_tx_power_ids[netgear_wax620_radio_settings.wlan0.tx_power_percent] }}"
         channel: "{{ netgear_wax620_radio_settings.wlan0.channel }}"
         channelWidth: "{{ netgear_wax620_radio_width_ids[netgear_wax620_radio_settings.wlan0.channel_width_mhz] }}"
-        beamForming: "{{ netgear_wax620_radio_settings.wlan0.beamforming | ternary('1', '0') }}"
       wlan1:
         radioStatus: "{{ netgear_wax620_radio_settings.wlan1.enabled | ternary('1', '0') }}"
         operateMode: "{{ netgear_wax620_radio_mode_ids.wlan1[netgear_wax620_radio_settings.wlan1.mode] }}"
@@ -55,7 +54,6 @@
         txPower: "{{ netgear_wax620_radio_tx_power_ids[netgear_wax620_radio_settings.wlan1.tx_power_percent] }}"
         channel: "{{ netgear_wax620_radio_settings.wlan1.channel }}"
         channelWidth: "{{ netgear_wax620_radio_width_ids[netgear_wax620_radio_settings.wlan1.channel_width_mhz] }}"
-        beamForming: "{{ netgear_wax620_radio_settings.wlan1.beamforming | ternary('1', '0') }}"
 - name: Update WAX620 radio settings
   ansible.builtin.uri:
     url: "https://{{ netgear_wax620_host }}/socketCommunication"
@@ -71,6 +69,7 @@
     timeout: "{{ netgear_wax620_radio_update_timeout_s }}"
     validate_certs: "{{ netgear_wax620_validate_certs }}"
   register: netgear_wax620_radio_settings_update
+  no_log: true
   when: netgear_wax620_radio_settings_current != netgear_wax620_radio_settings_desired
   changed_when: true
   failed_when: >-

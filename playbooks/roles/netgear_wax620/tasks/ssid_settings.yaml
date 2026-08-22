@@ -15,6 +15,7 @@
     timeout: "{{ netgear_wax620_timeout_s }}"
     validate_certs: "{{ netgear_wax620_validate_certs }}"
   register: netgear_wax620_ssid_settings_response
+  no_log: true
   changed_when: false
   failed_when: >-
     (netgear_wax620_ssid_settings_response.content | from_json).status | default(-1) | int != 0
@@ -30,6 +31,7 @@
     timeout: "{{ netgear_wax620_radio_update_timeout_s }}"
     validate_certs: "{{ netgear_wax620_validate_certs }}"
   register: netgear_wax620_ssid_settings_update
+  no_log: true
   loop: "{{ netgear_wax620_ssids }}"
   loop_control:
     label: "SSID{{ item.slot + 1 }}"

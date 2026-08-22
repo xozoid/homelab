@@ -38,6 +38,7 @@
         timeout: "{{ netgear_wax620_timeout_s }}"
         validate_certs: "{{ netgear_wax620_validate_certs }}"
       register: netgear_wax620_login_session
+      no_log: true
       changed_when: false
     - name: Assert WAX620 login session was created
       ansible.builtin.assert:
@@ -64,6 +65,7 @@
         timeout: "{{ netgear_wax620_timeout_s }}"
         validate_certs: "{{ netgear_wax620_validate_certs }}"
       register: netgear_wax620_authentication
+      no_log: true
       changed_when: false
       failed_when: >-
         (netgear_wax620_authentication.content | from_json).status | default(-1) | int != 0
@@ -78,6 +80,7 @@
           Referer: "https://{{ netgear_wax620_host }}/"
           X-Requested-With: XMLHttpRequest
           security: "{{ (netgear_wax620_authentication.content | from_json).system.security_token }}"
+      no_log: true
     - name: Configure WAX620 basic settings
       ansible.builtin.include_tasks: basic_settings.yaml
     - name: Configure WAX620 time settings
@@ -104,6 +107,7 @@
         timeout: "{{ netgear_wax620_timeout_s }}"
         validate_certs: "{{ netgear_wax620_validate_certs }}"
       register: netgear_wax620_logout
+      no_log: true
       # NOTE: A LAN update can restart the AP before it can accept a logout request.
       when: >-
         netgear_wax620_session_headers is defined and not (netgear_wax620_lan_settings_update.changed | default(false))

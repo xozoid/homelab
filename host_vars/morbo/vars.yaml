@@ -10,7 +10,6 @@ netgear_wax620_radio_settings:
     tx_power_percent: 12.5
     channel_width_mhz: 20
     channel: 5
-    beamforming: true
   wlan1:
     enabled: true
     mode: 11ax
@@ -18,7 +17,6 @@ netgear_wax620_radio_settings:
     tx_power_percent: 12.5
     channel_width_mhz: 40
     channel: 161
-    beamforming: true
 netgear_wax620_access_control_groups:
   - slot: 3
     name: Ring

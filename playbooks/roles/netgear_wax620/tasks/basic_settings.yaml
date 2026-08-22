@@ -1,0 +1,54 @@
+---
+- name: Read WAX620 basic settings
+  ansible.builtin.uri:
+    url: "https://{{ netgear_wax620_host }}/socketCommunication"
+    method: POST
+    body_format: json
+    body:
+      system:
+        basicSettings:
+          deviceMode: ""
+          apName: ""
+          sysCountryRegion: ""
+    headers: "{{ netgear_wax620_session_headers }}"
+    return_content: true
+    status_code: 200
+    timeout: "{{ netgear_wax620_timeout_s }}"
+    validate_certs: "{{ netgear_wax620_validate_certs }}"
+  register: netgear_wax620_basic_settings_response
+  changed_when: false
+  failed_when: >-
+    (netgear_wax620_basic_settings_response.content | from_json).status | default(-1) | int != 0
+  no_log: true
+- name: Extract current WAX620 basic settings
+  ansible.builtin.set_fact:
+    netgear_wax620_basic_settings_current:
+      apName: >-
+        {{ (netgear_wax620_basic_settings_response.content | from_json) .system.basicSettings.apName }}
+      sysCountryRegion: >-
+        {{ (netgear_wax620_basic_settings_response.content | from_json) .system.basicSettings.sysCountryRegion }}
+- name: Set desired WAX620 basic settings
+  ansible.builtin.set_fact:
+    netgear_wax620_basic_settings_desired:
+      apName: "{{ netgear_wax620_name }}"
+      sysCountryRegion: "{{ netgear_wax620_country_region }}"
+- name: Update WAX620 basic settings
+  ansible.builtin.uri:
+    url: "https://{{ netgear_wax620_host }}/socketCommunication"
+    method: POST
+    body_format: json
+    body:
+      system:
+        basicSettings: "{{ netgear_wax620_basic_settings_desired }}"
+    headers: "{{ netgear_wax620_session_headers }}"
+    return_content: true
+    status_code: 200
+    timeout: "{{ netgear_wax620_timeout_s }}"
+    validate_certs: "{{ netgear_wax620_validate_certs }}"
+  register: netgear_wax620_basic_settings_update
+  when: >-
+    netgear_wax620_basic_settings_current != netgear_wax620_basic_settings_desired
+  changed_when: true
+  failed_when: >-
+    (netgear_wax620_basic_settings_update.content | from_json).status | default(-1) | int != 0
+  no_log: true

@@ -12,6 +12,7 @@ The role idempotently manages these basic settings:
 - `sysCountryRegion`, fixed to the US enum `840`
 - Time zone, currently `USA-Pacific` (WAX620 enum `265`)
 - Custom NTP server, defaulting to `ntp.{{ domain_lan }}`
+- Static management LAN, DNS, and VLAN settings from `netgear_wax620_lan_settings`
 
 Run it with:
 
@@ -65,9 +66,13 @@ appliance-owned fields that the role should leave unchanged.
 ### Shared system and LAN settings
 
 `configure-wap.py` contains known payloads for time, advanced system, and LAN
-settings. Port them one section at a time using the implementation pattern.
-Apply management IP or VLAN changes last because they can disconnect the
-active API session.
+settings. Advanced system settings remain to be ported using the implementation
+pattern. LAN settings are applied last because management IP or VLAN changes can
+disconnect the active API session; the role then skips logout.
+
+The LAN capture contains `fqdn: "0"`, the appliance's disabled value, not a
+valid FQDN example. The role intentionally does not manage FQDN until a capture
+shows a successful non-empty value.
 
 ### Radios
 

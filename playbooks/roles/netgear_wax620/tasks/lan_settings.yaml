@@ -1,0 +1,78 @@
+---
+- name: Read WAX620 LAN settings
+  ansible.builtin.uri:
+    url: "https://{{ netgear_wax620_host }}/socketCommunication"
+    method: POST
+    body_format: json
+    body:
+      system:
+        basicSettings:
+          dhcpClientStatus: ""
+          ipAddr: ""
+          netmaskAddr: ""
+          gatewayAddr: ""
+          priDnsAddr: ""
+          sndDnsAddr: ""
+          networkIntegralityCheck: ""
+          untaggedVlanStatus: ""
+          untaggedVlanID: ""
+          managementVlanID: ""
+          interVlanRouting: ""
+    headers: "{{ netgear_wax620_session_headers }}"
+    return_content: true
+    status_code: 200
+    timeout: "{{ netgear_wax620_timeout_s }}"
+    validate_certs: "{{ netgear_wax620_validate_certs }}"
+  register: netgear_wax620_lan_settings_response
+  changed_when: false
+  failed_when: >-
+    (netgear_wax620_lan_settings_response.content | from_json).status | default(-1) | int != 0
+  no_log: true
+- name: Extract current WAX620 LAN settings
+  ansible.builtin.set_fact:
+    netgear_wax620_lan_settings_current:
+      dhcpClientStatus: "{{ (netgear_wax620_lan_settings_response.content | from_json).system.basicSettings.dhcpClientStatus }}"
+      ipAddr: "{{ (netgear_wax620_lan_settings_response.content | from_json).system.basicSettings.ipAddr }}"
+      netmaskAddr: "{{ (netgear_wax620_lan_settings_response.content | from_json).system.basicSettings.netmaskAddr }}"
+      gatewayAddr: "{{ (netgear_wax620_lan_settings_response.content | from_json).system.basicSettings.gatewayAddr }}"
+      priDnsAddr: "{{ (netgear_wax620_lan_settings_response.content | from_json).system.basicSettings.priDnsAddr }}"
+      sndDnsAddr: "{{ (netgear_wax620_lan_settings_response.content | from_json).system.basicSettings.sndDnsAddr }}"
+      networkIntegralityCheck: "{{ (netgear_wax620_lan_settings_response.content | from_json).system.basicSettings.networkIntegralityCheck }}"
+      untaggedVlanStatus: "{{ (netgear_wax620_lan_settings_response.content | from_json).system.basicSettings.untaggedVlanStatus }}"
+      untaggedVlanID: "{{ (netgear_wax620_lan_settings_response.content | from_json).system.basicSettings.untaggedVlanID }}"
+      managementVlanID: "{{ (netgear_wax620_lan_settings_response.content | from_json).system.basicSettings.managementVlanID }}"
+      interVlanRouting: "{{ (netgear_wax620_lan_settings_response.content | from_json).system.basicSettings.interVlanRouting }}"
+- name: Set desired WAX620 LAN settings
+  ansible.builtin.set_fact:
+    netgear_wax620_lan_settings_desired:
+      dhcpClientStatus: "{{ netgear_wax620_lan_settings.dhcp_client | ternary('1', '0') }}"
+      ipAddr: "{{ netgear_wax620_lan_settings.ip_address }}"
+      netmaskAddr: "{{ netgear_wax620_lan_settings.netmask }}"
+      gatewayAddr: "{{ netgear_wax620_lan_settings.gateway }}"
+      priDnsAddr: "{{ netgear_wax620_lan_settings.primary_dns }}"
+      sndDnsAddr: "{{ netgear_wax620_lan_settings.secondary_dns }}"
+      networkIntegralityCheck: "{{ netgear_wax620_lan_settings.network_integrity_check | ternary('1', '0') }}"
+      untaggedVlanStatus: "1"
+      untaggedVlanID: "{{ netgear_wax620_lan_settings.untagged_vlan }}"
+      managementVlanID: "{{ netgear_wax620_lan_settings.management_vlan }}"
+      interVlanRouting: "{{ netgear_wax620_lan_settings.inter_vlan_routing | ternary('1', '0') }}"
+- name: Update WAX620 LAN settings
+  ansible.builtin.uri:
+    url: "https://{{ netgear_wax620_host }}/socketCommunication"
+    method: POST
+    body_format: json
+    body:
+      system:
+        basicSettings: "{{ netgear_wax620_lan_settings_desired }}"
+    headers: "{{ netgear_wax620_session_headers }}"
+    return_content: true
+    status_code: 200
+    timeout: "{{ netgear_wax620_lan_update_timeout_s }}"
+    validate_certs: "{{ netgear_wax620_validate_certs }}"
+  register: netgear_wax620_lan_settings_update
+  when: >-
+    netgear_wax620_lan_settings_current != netgear_wax620_lan_settings_desired
+  changed_when: true
+  failed_when: >-
+    (netgear_wax620_lan_settings_update.content | from_json).status | default(-1) | int != 0
+  no_log: true

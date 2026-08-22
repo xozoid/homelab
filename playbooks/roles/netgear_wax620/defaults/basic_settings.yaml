@@ -1,0 +1,4 @@
+---
+netgear_wax620_basic_settings_defaults:
+  name: "{{ inventory_hostname }}"
+  country_region: "840"

@@ -1,0 +1,4 @@
+---
+netgear_wax620_access_control_defaults:
+  groups: []
+  update_timeout_s: 60

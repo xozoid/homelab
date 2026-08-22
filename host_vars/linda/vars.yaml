@@ -2,10 +2,20 @@
 ip_management: "{{ vlan_management.ip }}.150"
 netgear_wax620_host: "{{ inventory_hostname }}.lan.{{ domain }}"
 netgear_wax620_admin_password: "{{ vault_password }}"
-netgear_wax620_access_control_groups:
-  - slot: 3
-    name: Ring
-    policy: deny
-    hosts:
-      - name: ring-camera
-        mac: C2-4B-F8-0E-B8-F4
+netgear_wax620_radio_settings:
+  wlan0:
+    enabled: true
+    mode: 11ax
+    guard_interval: long-800-ns
+    tx_power_percent: 25
+    channel_width_mhz: 20
+    channel: 11
+    beamforming: true
+  wlan1:
+    enabled: true
+    mode: 11ax
+    guard_interval: long-800-ns
+    tx_power_percent: 4
+    channel_width_mhz: 40
+    channel: 124
+    beamforming: true

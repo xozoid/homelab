@@ -1,2 +1,0 @@
----
-ip_management: "{{ vlan_management.ip }}.140"

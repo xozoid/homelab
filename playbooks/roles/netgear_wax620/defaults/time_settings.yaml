@@ -1,0 +1,4 @@
+---
+netgear_wax620_time_settings_defaults:
+  timezone: USA-Pacific
+  ntp_server: "ntp.{{ domain_lan }}"

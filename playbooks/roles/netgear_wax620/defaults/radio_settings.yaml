@@ -1,0 +1,6 @@
+---
+netgear_wax620_radio_settings_defaults:
+  settings:
+    wlan0: {enabled: true, mode: 11ax, guard_interval: long-800-ns, tx_power_percent: 100, channel_width_mhz: 20, channel: 1, beamforming: true}
+    wlan1: {enabled: true, mode: 11ax, guard_interval: long-800-ns, tx_power_percent: 50, channel_width_mhz: 40, channel: 161, beamforming: true}
+  update_timeout_s: 120

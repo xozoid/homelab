@@ -2,3 +2,4 @@
 exclude_paths:
   - group_vars/all/vault.yaml
   - host_vars/linda/vault.yaml
+  - host_vars/morbo/vault.yaml

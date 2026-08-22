@@ -4,11 +4,8 @@ ansible_user: "{{ admin }}"
 domain: bradleydavis.tech
 domain_lan: lan.{{ domain }}
 timezone: America/Los_Angeles
-
 host_connection: ssh
-
 ip_top: 10
-
 vlan_lan:
   name: lan
   id: 1
@@ -45,12 +42,10 @@ vlan_guest:
   name: guest
   id: 901
   ip: "{{ ip_top }}.90.1"
-
 #   2 -  19: Commonly visited services are low numbered
 #  20 -  99: Other services
 # 100 - 199: Bare metal hosts end in a zero, virtualized are 1-9
 # 200 - 254: DHCP
-
 ip_grafana: "{{ vlan_management.ip }}.2"
 ip_uptime: "{{ vlan_management.ip }}.3"
 ip_prometheus: "{{ vlan_management.ip }}.20"
@@ -62,38 +57,31 @@ ip_speedtest_exporter: "{{ vlan_management.ip }}.25"
 ip_ntp_exporter: "{{ vlan_management.ip }}.26"
 ip_nginx_exporter: "{{ vlan_management.ip }}.27"
 ip_pve_exporter: "{{ vlan_management.ip }}.28"
-
 # ip_plex: "{{ vlan_servers.ip }}.2"
 # ip_wiki: "{{ vlan_servers.ip }}.3"
 ip_nummus: "{{ vlan_servers.ip }}.4"
 # ip_wiki_db: "{{ vlan_servers.ip }}.20"
 
 ip_home_assistant: "{{ vlan_automation.ip }}.2"
-
 ip_dns_0: "{{ vlan_networking.ip }}.2"
 ip_dns_1: "{{ vlan_networking.ip }}.3"
 ip_ntp: "{{ vlan_networking.ip }}.4"
 ip_reverse_proxy: "{{ vlan_networking.ip }}.5"
 # ip_reverse_proxy_public: "{{ vlan_networking.ip }}.6"
 ip_ddns: "{{ vlan_networking.ip }}.20"
-
 # ip_greenhouse: "{{ vlan_iot.ip }}.20"
 ip_beehive: "{{ vlan_iot.ip }}.21"
-
 # Vault items
 sysadmin_email: "{{ vault_sysadmin_email }}"
-
 pihole_admin_password: "{{ vault_pihole_admin_password }}"
-
 uptime_admin_password: "{{ vault_uptime_admin_password }}"
 uptime_discord: "{{ vault_uptime_discord }}"
-
 cloudflare_certbot_api_token: "{{ vault_cloudflare_certbot_api_token }}"
 cloudflare_ddns_api_token: "{{ vault_cloudflare_ddns_api_token }}"
 certbot_discord: "{{ vault_certbot_discord }}"
-
 alertmanager_discord: "{{ vault_alertmanager_discord }}"
-
 grafana_admin_password: "{{ vault_grafana_admin_password }}"
-
 pve_token: "{{ vault_pve_token }}"
+wap_key: "{{ vault_wap_key }}"
+wap_iot_key: "{{ vault_wap_iot_key }}"
+wap_guest_key: "{{ vault_wap_guest_key }}"

@@ -1,63 +1,23 @@
 ---
-# The WAX620 JSON API has no public contract. Keep appliance-specific values
-# here so host variables describe intent rather than protocol enums.
-netgear_wax620_host: "{{ ip_management }}"
-netgear_wax620_admin_username: admin
-netgear_wax620_admin_password: ""
-netgear_wax620_name: "{{ inventory_hostname }}"
-netgear_wax620_country_region: "840"
-netgear_wax620_timezone: USA-Pacific
-netgear_wax620_time_zone_ids:
-  USA-Pacific: "265"
-netgear_wax620_ntp_server: "ntp.{{ domain_lan }}"
-netgear_wax620_lan_settings:
-  dhcp_client: false
-  ip_address: "{{ ip_management }}"
-  netmask: 255.255.255.0
-  gateway: "{{ vlan_management.ip }}.1"
-  primary_dns: "{{ ip_dns_0 }}"
-  secondary_dns: "{{ ip_dns_1 }}"
-  network_integrity_check: false
-  untagged_vlan: 1
-  management_vlan: "{{ vlan_management.id }}"
-  inter_vlan_routing: true
-netgear_wax620_access_control_groups: []
-netgear_wax620_validate_certs: false
-netgear_wax620_timeout_s: 10
-# The LAN save captured in lan.har took nearly 23 seconds.
-netgear_wax620_lan_update_timeout_s: 60
-netgear_wax620_access_control_update_timeout_s: 60
-netgear_wax620_radio_update_timeout_s: 60
-netgear_wax620_radio_settings:
-  wlan0:
-    enabled: true
-    mode: 11ax
-    guard_interval: long-800-ns
-    tx_power_percent: 100
-    channel_width_mhz: 20
-    channel: 1
-    beamforming: true
-  wlan1:
-    enabled: true
-    mode: 11ax
-    guard_interval: long-800-ns
-    tx_power_percent: 50
-    channel_width_mhz: 40
-    channel: 161
-    beamforming: true
-netgear_wax620_radio_mode_ids:
-  wlan0:
-    "11ax": "9"
-  wlan1:
-    "11ax": "10"
-netgear_wax620_radio_tx_power_ids:
-  100: "0"
-  50: "1"
-  25: "2"
-  12.5: "3"
-  4: "4"
-netgear_wax620_radio_width_ids:
-  20: "0"
-  40: "1"
-  80: "2"
-  dynamic: "3"
+# Section files are loaded before validation. Keep these bindings as role
+# defaults so inventory and host variables retain their normal precedence.
+netgear_wax620_host: "{{ netgear_wax620_connection_defaults.host }}"
+netgear_wax620_admin_username: "{{ netgear_wax620_connection_defaults.admin_username }}"
+netgear_wax620_admin_password: "{{ netgear_wax620_connection_defaults.admin_password }}"
+netgear_wax620_validate_certs: "{{ netgear_wax620_connection_defaults.validate_certs }}"
+netgear_wax620_timeout_s: "{{ netgear_wax620_connection_defaults.timeout_s }}"
+netgear_wax620_name: "{{ netgear_wax620_basic_settings_defaults.name }}"
+netgear_wax620_country_region: "{{ netgear_wax620_basic_settings_defaults.country_region }}"
+netgear_wax620_timezone: "{{ netgear_wax620_time_settings_defaults.timezone }}"
+netgear_wax620_ntp_server: "{{ netgear_wax620_time_settings_defaults.ntp_server }}"
+netgear_wax620_lan_settings: "{{ netgear_wax620_lan_settings_defaults.settings }}"
+netgear_wax620_lan_update_timeout_s: "{{ netgear_wax620_lan_settings_defaults.update_timeout_s }}"
+netgear_wax620_access_control_groups: "{{ netgear_wax620_access_control_defaults.groups }}"
+netgear_wax620_access_control_update_timeout_s: "{{ netgear_wax620_access_control_defaults.update_timeout_s }}"
+netgear_wax620_radio_settings: "{{ netgear_wax620_radio_settings_defaults.settings }}"
+netgear_wax620_radio_update_timeout_s: "{{ netgear_wax620_radio_settings_defaults.update_timeout_s }}"
+netgear_wax620_ssids: "{{ netgear_wax620_ssid_settings_defaults.ssids }}"
+netgear_wax620_time_zone_ids: "{{ netgear_wax620_enum_defaults.time_zone_ids }}"
+netgear_wax620_radio_mode_ids: "{{ netgear_wax620_enum_defaults.radio_mode_ids }}"
+netgear_wax620_radio_tx_power_ids: "{{ netgear_wax620_enum_defaults.radio_tx_power_ids }}"
+netgear_wax620_radio_width_ids: "{{ netgear_wax620_enum_defaults.radio_width_ids }}"

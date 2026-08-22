@@ -1,4 +1,16 @@
 ---
+- name: Load WAX620 section defaults
+  ansible.builtin.include_vars:
+    file: "{{ role_path }}/defaults/{{ item }}.yaml"
+  loop:
+    - connection
+    - basic_settings
+    - time_settings
+    - lan_settings
+    - access_control
+    - radio_settings
+    - ssid_settings
+    - enums
 - name: Validate WAX620 role inputs
   ansible.builtin.assert:
     that:
@@ -70,6 +82,8 @@
       ansible.builtin.include_tasks: time_settings.yaml
     - name: Configure WAX620 access-control groups
       ansible.builtin.include_tasks: access_control.yaml
+    - name: Configure WAX620 SSIDs
+      ansible.builtin.include_tasks: ssid_settings.yaml
     - name: Configure WAX620 radios
       ansible.builtin.include_tasks: radio_settings.yaml
     - name: Configure WAX620 LAN settings

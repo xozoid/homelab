@@ -69,7 +69,9 @@ group with an explicit slot, policy, and full desired host list. The supported
 getters return group metadata and MAC lists separately. The role combines them
 for a full comparison, then updates only declared groups that differ. Unrelated
 default or custom groups remain unchanged. Configure access-control groups
-before SSIDs that refer to them.
+before SSIDs that refer to them. SSID access control is separate: set an SSID's
+`access_control_group` to `group0` through `group7`; the default `None` disables
+filtering while retaining any configured group for later use.
 
 ## Remaining work
 

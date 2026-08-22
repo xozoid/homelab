@@ -1,0 +1,7 @@
+---
+netgear_wax620_connection_defaults:
+  host: "{{ ip_management }}"
+  admin_username: admin
+  admin_password: ""
+  validate_certs: false
+  timeout_s: 10

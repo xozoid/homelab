@@ -1,0 +1,38 @@
+---
+- name: Read WAX620 SSID settings
+  ansible.builtin.uri:
+    url: "https://{{ netgear_wax620_host }}/socketCommunication"
+    method: POST
+    body_format: json
+    body:
+      system:
+        wlanSettings:
+          wlanSettingTable:
+            ssidGetDetails: ""
+    headers: "{{ netgear_wax620_session_headers | combine({'Referer': 'https://' ~ netgear_wax620_host ~ '/WirelessBasic'}) }}"
+    return_content: true
+    status_code: 200
+    timeout: "{{ netgear_wax620_timeout_s }}"
+    validate_certs: "{{ netgear_wax620_validate_certs }}"
+  register: netgear_wax620_ssid_settings_response
+  changed_when: false
+  failed_when: >-
+    (netgear_wax620_ssid_settings_response.content | from_json).status | default(-1) | int != 0
+- name: Configure declared WAX620 SSIDs
+  ansible.builtin.uri:
+    url: "https://{{ netgear_wax620_host }}/socketCommunication"
+    method: POST
+    body_format: json
+    body: "{{ lookup('template', 'ssid_set_details.json.j2') | from_json }}"
+    headers: "{{ netgear_wax620_session_headers | combine({'Referer': 'https://' ~ netgear_wax620_host ~ '/WirelessBasic'}) }}"
+    return_content: true
+    status_code: 200
+    timeout: "{{ netgear_wax620_radio_update_timeout_s }}"
+    validate_certs: "{{ netgear_wax620_validate_certs }}"
+  register: netgear_wax620_ssid_settings_update
+  loop: "{{ netgear_wax620_ssids }}"
+  loop_control:
+    label: "SSID{{ item.slot + 1 }}"
+  changed_when: true
+  failed_when: >-
+    (netgear_wax620_ssid_settings_update.content | from_json).status | default(-1) | int != 0

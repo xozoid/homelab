@@ -27,3 +27,37 @@ netgear_wax620_timeout_s: 10
 # The LAN save captured in lan.har took nearly 23 seconds.
 netgear_wax620_lan_update_timeout_s: 60
 netgear_wax620_access_control_update_timeout_s: 60
+netgear_wax620_radio_update_timeout_s: 60
+netgear_wax620_radio_settings:
+  wlan0:
+    enabled: true
+    mode: 11ax
+    guard_interval: long-800-ns
+    tx_power_percent: 100
+    channel_width_mhz: 20
+    channel: 1
+    beamforming: true
+  wlan1:
+    enabled: true
+    mode: 11ax
+    guard_interval: long-800-ns
+    tx_power_percent: 50
+    channel_width_mhz: 40
+    channel: 161
+    beamforming: true
+netgear_wax620_radio_mode_ids:
+  wlan0:
+    "11ax": "9"
+  wlan1:
+    "11ax": "10"
+netgear_wax620_radio_tx_power_ids:
+  100: "0"
+  50: "1"
+  25: "2"
+  12.5: "3"
+  4: "4"
+netgear_wax620_radio_width_ids:
+  20: "0"
+  40: "1"
+  80: "2"
+  dynamic: "3"

@@ -5,3 +5,4 @@ netgear_wax620_enum_defaults:
   radio_mode_ids: {wlan0: {"11ax": "9"}, wlan1: {"11ax": "10"}}
   radio_tx_power_ids: {100: "0", 50: "1", 25: "2", 12.5: "3", 4: "4"}
   radio_width_ids: {20: "0", 40: "1", 80: "2", dynamic: "3"}
+  radio_guard_interval_ids: {short-400-ns: "0", long-800-ns: "1"}

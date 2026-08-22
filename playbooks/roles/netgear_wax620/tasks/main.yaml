@@ -21,8 +21,10 @@
       - netgear_wax620_lan_settings.ip_address | length > 0
       - netgear_wax620_lan_settings.primary_dns | length > 0
       - netgear_wax620_lan_settings.secondary_dns | length > 0
+      - netgear_wax620_radio_settings.wlan0.guard_interval in netgear_wax620_radio_guard_interval_ids
+      - netgear_wax620_radio_settings.wlan1.guard_interval in netgear_wax620_radio_guard_interval_ids
     fail_msg: >-
-      Set netgear_wax620_admin_password from an Ansible Vault variable, use a supported time zone, and provide an NTP server. This role currently supports the WAX620 US country-region enum only.
+      Set netgear_wax620_admin_password from an Ansible Vault variable, use a supported time zone and radio guard interval, and provide an NTP server. This role currently supports the WAX620 US country-region enum only.
 - name: Configure WAX620
   block:
     - name: Start WAX620 login session

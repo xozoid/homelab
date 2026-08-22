@@ -28,7 +28,7 @@
         txPower: "{{ (netgear_wax620_radio_settings_response.content | from_json).system.wlanSettings.wlanSettingTable.wlan0.txPower }}"
         channel: "{{ (netgear_wax620_radio_settings_response.content | from_json).system.wlanSettings.wlanSettingTable.wlan0.channel }}"
         channelWidth: "{{ (netgear_wax620_radio_settings_response.content | from_json).system.wlanSettings.wlanSettingTable.wlan0.channelWidth }}"
-        beamForming: "{{ (netgear_wax620_radio_settings_response.content | from_json).system.wlanSettings.wlanSettingTable.wlan0.beamForming | default('') }}"
+        beamForming: "{{ (netgear_wax620_radio_settings_response.content | from_json).system.wlanSettings.wlanSettingTable.wlan0.beamForming | default(netgear_wax620_radio_settings.wlan0.beamforming | ternary('1', '0')) }}"
       wlan1:
         radioStatus: "{{ (netgear_wax620_radio_settings_response.content | from_json).system.wlanSettings.wlanSettingTable.wlan1.radioStatus }}"
         operateMode: "{{ (netgear_wax620_radio_settings_response.content | from_json).system.wlanSettings.wlanSettingTable.wlan1.operateMode }}"
@@ -36,14 +36,14 @@
         txPower: "{{ (netgear_wax620_radio_settings_response.content | from_json).system.wlanSettings.wlanSettingTable.wlan1.txPower }}"
         channel: "{{ (netgear_wax620_radio_settings_response.content | from_json).system.wlanSettings.wlanSettingTable.wlan1.channel }}"
         channelWidth: "{{ (netgear_wax620_radio_settings_response.content | from_json).system.wlanSettings.wlanSettingTable.wlan1.channelWidth }}"
-        beamForming: "{{ (netgear_wax620_radio_settings_response.content | from_json).system.wlanSettings.wlanSettingTable.wlan1.beamForming | default('') }}"
+        beamForming: "{{ (netgear_wax620_radio_settings_response.content | from_json).system.wlanSettings.wlanSettingTable.wlan1.beamForming | default(netgear_wax620_radio_settings.wlan1.beamforming | ternary('1', '0')) }}"
 - name: Set desired WAX620 radio settings
   ansible.builtin.set_fact:
     netgear_wax620_radio_settings_desired:
       wlan0:
         radioStatus: "{{ netgear_wax620_radio_settings.wlan0.enabled | ternary('1', '0') }}"
         operateMode: "{{ netgear_wax620_radio_mode_ids.wlan0[netgear_wax620_radio_settings.wlan0.mode] }}"
-        guardInterval: "1"
+        guardInterval: "{{ netgear_wax620_radio_guard_interval_ids[netgear_wax620_radio_settings.wlan0.guard_interval] }}"
         txPower: "{{ netgear_wax620_radio_tx_power_ids[netgear_wax620_radio_settings.wlan0.tx_power_percent] }}"
         channel: "{{ netgear_wax620_radio_settings.wlan0.channel }}"
         channelWidth: "{{ netgear_wax620_radio_width_ids[netgear_wax620_radio_settings.wlan0.channel_width_mhz] }}"
@@ -51,7 +51,7 @@
       wlan1:
         radioStatus: "{{ netgear_wax620_radio_settings.wlan1.enabled | ternary('1', '0') }}"
         operateMode: "{{ netgear_wax620_radio_mode_ids.wlan1[netgear_wax620_radio_settings.wlan1.mode] }}"
-        guardInterval: "1"
+        guardInterval: "{{ netgear_wax620_radio_guard_interval_ids[netgear_wax620_radio_settings.wlan1.guard_interval] }}"
         txPower: "{{ netgear_wax620_radio_tx_power_ids[netgear_wax620_radio_settings.wlan1.tx_power_percent] }}"
         channel: "{{ netgear_wax620_radio_settings.wlan1.channel }}"
         channelWidth: "{{ netgear_wax620_radio_width_ids[netgear_wax620_radio_settings.wlan1.channel_width_mhz] }}"

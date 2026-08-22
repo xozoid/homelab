@@ -1,0 +1,6 @@
+---
+netgear_wax620_ssid_settings_defaults:
+  ssids:
+    - {slot: 0, name: 127.0.0.1, key: "{{ wap_key }}", vlan_id: "{{ vlan_trusted.id }}", access_control_group: "None"}
+    - {slot: 1, name: 127.0.0.1-iot, key: "{{ wap_iot_key }}", vlan_id: "{{ vlan_iot.id }}", access_control_group: "None"}
+    - {slot: 2, name: 127.0.0.1-guest, key: "{{ wap_guest_key }}", vlan_id: "{{ vlan_guest.id }}", access_control_group: "None"}

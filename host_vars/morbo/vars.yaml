@@ -1,0 +1,42 @@
+---
+ip_management: "{{ vlan_management.ip }}.140"
+netgear_wax620_host: "{{ inventory_hostname }}.lan.{{ domain }}"
+netgear_wax620_admin_password: "{{ vault_password }}"
+netgear_wax620_radio_settings:
+  wlan0:
+    enabled: true
+    mode: 11ax
+    guard_interval: long-800-ns
+    tx_power_percent: 12.5
+    channel_width_mhz: 20
+    channel: 5
+  wlan1:
+    enabled: true
+    mode: 11ax
+    guard_interval: long-800-ns
+    tx_power_percent: 12.5
+    channel_width_mhz: 40
+    channel: 161
+netgear_wax620_access_control_groups:
+  - slot: 3
+    name: Ring
+    policy: deny
+    hosts:
+      - name: ring-camera
+        mac: 9C-76-13-74-5C-37
+netgear_wax620_ssids:
+  - slot: 0
+    name: 127.0.0.1
+    key: "{{ wap_key }}"
+    vlan_id: "{{ vlan_trusted.id }}"
+    access_control_group: group3
+  - slot: 1
+    name: 127.0.0.1-iot
+    key: "{{ wap_iot_key }}"
+    vlan_id: "{{ vlan_iot.id }}"
+    access_control_group: group3
+  - slot: 2
+    name: 127.0.0.1-guest
+    key: "{{ wap_guest_key }}"
+    vlan_id: "{{ vlan_guest.id }}"
+    access_control_group: group3

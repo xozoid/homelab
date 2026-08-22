@@ -1,0 +1,56 @@
+---
+- name: Read WAX620 SSID settings
+  ansible.builtin.uri:
+    url: "https://{{ netgear_wax620_host }}/socketCommunication"
+    method: POST
+    body_format: json
+    body:
+      system:
+        wlanSettings:
+          wlanSettingTable:
+            ssidGetDetails: ""
+    headers: "{{ netgear_wax620_session_headers | combine({'Referer': 'https://' ~ netgear_wax620_host ~ '/WirelessBasic'}) }}"
+    return_content: true
+    status_code: 200
+    timeout: "{{ netgear_wax620_timeout_s }}"
+    validate_certs: "{{ netgear_wax620_validate_certs }}"
+  register: netgear_wax620_ssid_settings_response
+  no_log: true
+  changed_when: false
+  failed_when: >-
+    (netgear_wax620_ssid_settings_response.content | from_json).status | default(-1) | int != 0
+- name: Configure declared WAX620 SSIDs
+  ansible.builtin.uri:
+    url: "https://{{ netgear_wax620_host }}/socketCommunication"
+    method: POST
+    body_format: json
+    body: "{{ netgear_wax620_ssid_settings_desired }}"
+    headers: "{{ netgear_wax620_session_headers | combine({'Referer': 'https://' ~ netgear_wax620_host ~ '/WirelessBasic'}) }}"
+    return_content: true
+    status_code: 200
+    timeout: "{{ netgear_wax620_radio_update_timeout_s }}"
+    validate_certs: "{{ netgear_wax620_validate_certs }}"
+  register: netgear_wax620_ssid_settings_update
+  no_log: true
+  loop: "{{ netgear_wax620_ssids }}"
+  loop_control:
+    label: "SSID{{ item.slot + 1 }}"
+  vars:
+    netgear_wax620_ssid_settings_desired: "{{ lookup('template', 'ssid_set_details.json.j2') | from_json }}"
+    netgear_wax620_ssid_current:
+      wlan0: >-
+        {{ (netgear_wax620_ssid_settings_response.content | from_json).system.wlanSettings.wlanSettingTable.ssidGetDetails['SSID' ~ (item.slot + 1)].wlan0['vap' ~ item.slot] }}
+      wlan1: >-
+        {{ (netgear_wax620_ssid_settings_response.content | from_json).system.wlanSettings.wlanSettingTable.ssidGetDetails['SSID' ~ (item.slot + 1)].wlan1['vap' ~ item.slot] }}
+  when: |-
+    netgear_wax620_ssid_current.wlan0.ssid != item.name
+    or (netgear_wax620_ssid_current.wlan0.vlanID | string) != (item.vlan_id | string)
+    or netgear_wax620_ssid_current.wlan0.accessControlGroup != item.access_control_group
+    or netgear_wax620_ssid_current.wlan0.presharedKey != item.key
+    or netgear_wax620_ssid_current.wlan1.ssid != item.name
+    or (netgear_wax620_ssid_current.wlan1.vlanID | string) != (item.vlan_id | string)
+    or netgear_wax620_ssid_current.wlan1.accessControlGroup != item.access_control_group
+    or netgear_wax620_ssid_current.wlan1.presharedKey != item.key
+  changed_when: true
+  failed_when: >-
+    (netgear_wax620_ssid_settings_update.content | from_json).status | default(-1) | int != 0

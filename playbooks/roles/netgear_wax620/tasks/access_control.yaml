@@ -1,0 +1,88 @@
+---
+- name: Build desired WAX620 access-control groups
+  ansible.builtin.set_fact:
+    netgear_wax620_access_control_groups_desired: "{{ netgear_wax620_access_control_groups_desired | default({}) | combine({'group' ~ item.slot: {'name': item.name, 'accessControlPolicy': item.policy, 'macList': item.hosts | map(attribute='mac') | list}}) }}"
+  loop: "{{ netgear_wax620_access_control_groups }}"
+  loop_control:
+    label: "group{{ item.slot }}"
+- name: Read WAX620 access-control groups
+  ansible.builtin.uri:
+    url: "https://{{ netgear_wax620_host }}/socketCommunication"
+    method: POST
+    body_format: json
+    body:
+      system:
+        accessControlSettings:
+          wlanAccessControlLocalTable:
+            group0: {name: "", accessControlPolicy: ""}
+            group1: {name: "", accessControlPolicy: ""}
+            group2: {name: "", accessControlPolicy: ""}
+            group3: {name: "", accessControlPolicy: ""}
+            group4: {name: "", accessControlPolicy: ""}
+            group5: {name: "", accessControlPolicy: ""}
+            group6: {name: "", accessControlPolicy: ""}
+            group7: {name: "", accessControlPolicy: ""}
+    headers: "{{ netgear_wax620_session_headers }}"
+    return_content: true
+    status_code: 200
+    timeout: "{{ netgear_wax620_timeout_s }}"
+    validate_certs: "{{ netgear_wax620_validate_certs }}"
+  register: netgear_wax620_access_control_groups_response
+  no_log: true
+  changed_when: false
+  failed_when: >-
+    (netgear_wax620_access_control_groups_response.content | from_json).status | default(-1) | int != 0
+- name: Extract current WAX620 access-control groups
+  ansible.builtin.set_fact:
+    netgear_wax620_access_control_groups_current: "{{ netgear_wax620_access_control_groups_current | default({}) | combine({'group' ~ item.slot: (netgear_wax620_access_control_groups_response.content | from_json).system.accessControlSettings.wlanAccessControlLocalTable['group' ~ item.slot]}) }}"
+  loop: "{{ netgear_wax620_access_control_groups }}"
+  loop_control:
+    label: "group{{ item.slot }}"
+- name: Read WAX620 access-control MAC lists
+  ansible.builtin.uri:
+    url: "https://{{ netgear_wax620_host }}/socketCommunication"
+    method: POST
+    body_format: json
+    body: >-
+      {"system":{"accessControlSettings":{"wlanAccessControlLocalTable":{"group{{ item.slot }}":{"macList":""}}}}}
+    headers: "{{ netgear_wax620_session_headers }}"
+    return_content: true
+    status_code: 200
+    timeout: "{{ netgear_wax620_timeout_s }}"
+    validate_certs: "{{ netgear_wax620_validate_certs }}"
+  register: netgear_wax620_access_control_mac_lists_response
+  no_log: true
+  loop: "{{ netgear_wax620_access_control_groups }}"
+  loop_control:
+    label: "group{{ item.slot }}"
+  changed_when: false
+  failed_when: >-
+    (netgear_wax620_access_control_mac_lists_response.content | from_json).status | default(-1) | int != 0
+- name: Add MAC lists to current WAX620 access-control groups
+  ansible.builtin.set_fact:
+    netgear_wax620_access_control_groups_current: "{{ netgear_wax620_access_control_groups_current | combine({'group' ~ item.item.slot: netgear_wax620_access_control_groups_current['group' ~ item.item.slot] | combine({'macList': (item.content | from_json).system.accessControlSettings.wlanAccessControlLocalTable['group' ~ item.item.slot].macList})}) }}"
+  loop: "{{ netgear_wax620_access_control_mac_lists_response.results | default([]) }}"
+  loop_control:
+    label: "group{{ item.item.slot }}"
+- name: Update WAX620 access-control groups
+  ansible.builtin.uri:
+    url: "https://{{ netgear_wax620_host }}/socketCommunication"
+    method: POST
+    body_format: json
+    body: >-
+      {"system":{"accessControlSettings":{"wlanAccessControlLocalTable":{"group{{ item.slot }}":{"name":{{ item.name | to_json }},"accessControlPolicy":{{ item.policy | to_json }},"macList":{{ (item.hosts | map(attribute='mac') | list) | to_json }}}}}}}
+    headers: "{{ netgear_wax620_session_headers }}"
+    return_content: true
+    status_code: 200
+    timeout: "{{ netgear_wax620_access_control_update_timeout_s }}"
+    validate_certs: "{{ netgear_wax620_validate_certs }}"
+  register: netgear_wax620_access_control_groups_update
+  no_log: true
+  loop: "{{ netgear_wax620_access_control_groups }}"
+  loop_control:
+    label: "group{{ item.slot }}"
+  when: >-
+    netgear_wax620_access_control_groups_current['group' ~ item.slot] != netgear_wax620_access_control_groups_desired['group' ~ item.slot]
+  changed_when: true
+  failed_when: >-
+    (netgear_wax620_access_control_groups_update.content | from_json).status | default(-1) | int != 0

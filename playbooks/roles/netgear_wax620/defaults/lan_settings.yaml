@@ -1,0 +1,14 @@
+---
+netgear_wax620_lan_settings_defaults:
+  settings:
+    dhcp_client: false
+    ip_address: "{{ ip_management }}"
+    netmask: 255.255.255.0
+    gateway: "{{ vlan_management.ip }}.1"
+    primary_dns: "{{ ip_dns_0 }}"
+    secondary_dns: "{{ ip_dns_1 }}"
+    network_integrity_check: false
+    untagged_vlan: 1
+    management_vlan: "{{ vlan_management.id }}"
+    inter_vlan_routing: true
+  update_timeout_s: 60

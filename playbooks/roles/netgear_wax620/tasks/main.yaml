@@ -1,0 +1,116 @@
+---
+- name: Load WAX620 section defaults
+  ansible.builtin.include_vars:
+    file: "{{ role_path }}/defaults/{{ item }}.yaml"
+  loop:
+    - connection
+    - basic_settings
+    - time_settings
+    - lan_settings
+    - access_control
+    - radio_settings
+    - ssid_settings
+    - enums
+- name: Validate WAX620 role inputs
+  ansible.builtin.assert:
+    that:
+      - netgear_wax620_admin_password | length > 0
+      - netgear_wax620_country_region == '840'
+      - netgear_wax620_timezone in netgear_wax620_time_zone_ids
+      - netgear_wax620_ntp_server | length > 0
+      - netgear_wax620_lan_settings.ip_address | length > 0
+      - netgear_wax620_lan_settings.primary_dns | length > 0
+      - netgear_wax620_lan_settings.secondary_dns | length > 0
+      - netgear_wax620_radio_settings.wlan0.guard_interval in netgear_wax620_radio_guard_interval_ids
+      - netgear_wax620_radio_settings.wlan1.guard_interval in netgear_wax620_radio_guard_interval_ids
+    fail_msg: >-
+      Set netgear_wax620_admin_password from an Ansible Vault variable, use a supported time zone and radio guard interval, and provide an NTP server. This role currently supports the WAX620 US country-region enum only.
+- name: Configure WAX620
+  block:
+    - name: Start WAX620 login session
+      ansible.builtin.uri:
+        url: "https://{{ netgear_wax620_host }}/"
+        method: GET
+        follow_redirects: none
+        status_code:
+          - 200
+          - 302
+        timeout: "{{ netgear_wax620_timeout_s }}"
+        validate_certs: "{{ netgear_wax620_validate_certs }}"
+      register: netgear_wax620_login_session
+      no_log: true
+      changed_when: false
+    - name: Assert WAX620 login session was created
+      ansible.builtin.assert:
+        that: netgear_wax620_login_session.cookies_string | length > 0
+        fail_msg: WAX620 did not issue a login-session cookie.
+    - name: Authenticate to WAX620
+      ansible.builtin.uri:
+        url: "https://{{ netgear_wax620_host }}/socketCommunication"
+        method: POST
+        body_format: json
+        body:
+          system:
+            basicSettings:
+              adminName: "{{ netgear_wax620_admin_username }}"
+              adminPasswd: "{{ netgear_wax620_admin_password }}"
+        headers:
+          Accept: application/json
+          Cookie: "{{ netgear_wax620_login_session.cookies_string }}"
+          Origin: "https://{{ netgear_wax620_host }}"
+          Referer: "https://{{ netgear_wax620_host }}/"
+          X-Requested-With: XMLHttpRequest
+        return_content: true
+        status_code: 200
+        timeout: "{{ netgear_wax620_timeout_s }}"
+        validate_certs: "{{ netgear_wax620_validate_certs }}"
+      register: netgear_wax620_authentication
+      no_log: true
+      changed_when: false
+      failed_when: >-
+        (netgear_wax620_authentication.content | from_json).status | default(-1) | int != 0
+    - name: Set WAX620 session headers
+      ansible.builtin.set_fact:
+        netgear_wax620_session_headers:
+          Accept: application/json
+          Content-Type: application/json
+          Cookie: >-
+            {{ netgear_wax620_authentication.cookies_string | default(netgear_wax620_login_session.cookies_string, true) }}; ssid={{ (netgear_wax620_authentication.content | from_json) .system.security_token | b64encode }}
+          Origin: "https://{{ netgear_wax620_host }}"
+          Referer: "https://{{ netgear_wax620_host }}/"
+          X-Requested-With: XMLHttpRequest
+          security: "{{ (netgear_wax620_authentication.content | from_json).system.security_token }}"
+      no_log: true
+    - name: Configure WAX620 basic settings
+      ansible.builtin.include_tasks: basic_settings.yaml
+    - name: Configure WAX620 time settings
+      ansible.builtin.include_tasks: time_settings.yaml
+    - name: Configure WAX620 access-control groups
+      ansible.builtin.include_tasks: access_control.yaml
+    - name: Configure WAX620 SSIDs
+      ansible.builtin.include_tasks: ssid_settings.yaml
+    - name: Configure WAX620 radios
+      ansible.builtin.include_tasks: radio_settings.yaml
+    - name: Configure WAX620 LAN settings
+      ansible.builtin.include_tasks: lan_settings.yaml
+  always:
+    - name: Log out of WAX620
+      ansible.builtin.uri:
+        url: "https://{{ netgear_wax620_host }}/logout"
+        method: POST
+        body_format: json
+        body:
+          admin: "{{ netgear_wax620_admin_username }}"
+        headers: "{{ netgear_wax620_session_headers }}"
+        return_content: true
+        status_code: 200
+        timeout: "{{ netgear_wax620_timeout_s }}"
+        validate_certs: "{{ netgear_wax620_validate_certs }}"
+      register: netgear_wax620_logout
+      no_log: true
+      # NOTE: A LAN update can restart the AP before it can accept a logout request.
+      when: >-
+        netgear_wax620_session_headers is defined and not (netgear_wax620_lan_settings_update.changed | default(false))
+      changed_when: false
+      failed_when: >-
+        (netgear_wax620_logout.content | from_json).status | default(-1) | int != 0

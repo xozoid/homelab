@@ -11,9 +11,13 @@
   import_playbook: playbooks/time.yaml
 - name: Certificates
   import_playbook: playbooks/certs.yaml
+- name: Wireless
+  import_playbook: playbooks/wireless.yaml
 - name: Reverse proxy
   import_playbook: playbooks/reverse_proxy.yaml
 - name: Metrics
   import_playbook: playbooks/metrics.yaml
 - name: Uptime monitor
   import_playbook: playbooks/uptime.yaml
+- name: Services
+  import_playbook: playbooks/services.yaml

@@ -6,6 +6,9 @@ ungrouped:
     morbo:
     linda:
     scruffy:
+wireless_access_points:
+  hosts:
+    linda:
 hw_nibbler:
   hosts:
     nibbler:

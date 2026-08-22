@@ -1,0 +1,4 @@
+---
+ip_management: "{{ vlan_management.ip }}.150"
+netgear_wax620_host: "{{ inventory_hostname }}.lan.{{ domain }}"
+netgear_wax620_admin_password: "{{ vault_password }}"

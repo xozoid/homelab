@@ -1,0 +1,7 @@
+---
+- name: Configure wireless access points
+  hosts: wireless_access_points
+  connection: local
+  gather_facts: false
+  roles:
+    - role: netgear_wax620

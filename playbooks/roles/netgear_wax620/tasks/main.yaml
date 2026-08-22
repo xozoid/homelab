@@ -1,0 +1,138 @@
+---
+- name: Validate WAX620 role inputs
+  ansible.builtin.assert:
+    that:
+      - netgear_wax620_admin_password | length > 0
+      - netgear_wax620_country_region == '840'
+    fail_msg: >-
+      Set netgear_wax620_admin_password from an Ansible Vault variable. This role currently supports the WAX620 US country-region enum only.
+  no_log: true
+- name: Configure WAX620
+  block:
+    - name: Start WAX620 login session
+      ansible.builtin.uri:
+        url: "https://{{ netgear_wax620_host }}/"
+        method: GET
+        follow_redirects: none
+        status_code:
+          - 200
+          - 302
+        timeout: "{{ netgear_wax620_timeout_s }}"
+        validate_certs: "{{ netgear_wax620_validate_certs }}"
+      register: netgear_wax620_login_session
+      changed_when: false
+      no_log: true
+    - name: Assert WAX620 login session was created
+      ansible.builtin.assert:
+        that: netgear_wax620_login_session.cookies_string | length > 0
+        fail_msg: WAX620 did not issue a login-session cookie.
+      no_log: true
+    - name: Authenticate to WAX620
+      ansible.builtin.uri:
+        url: "https://{{ netgear_wax620_host }}/socketCommunication"
+        method: POST
+        body_format: json
+        body:
+          system:
+            basicSettings:
+              adminName: "{{ netgear_wax620_admin_username }}"
+              adminPasswd: "{{ netgear_wax620_admin_password }}"
+        headers:
+          Accept: application/json
+          Cookie: "{{ netgear_wax620_login_session.cookies_string }}"
+          Origin: "https://{{ netgear_wax620_host }}"
+          Referer: "https://{{ netgear_wax620_host }}/"
+          X-Requested-With: XMLHttpRequest
+        return_content: true
+        status_code: 200
+        timeout: "{{ netgear_wax620_timeout_s }}"
+        validate_certs: "{{ netgear_wax620_validate_certs }}"
+      register: netgear_wax620_authentication
+      changed_when: false
+      failed_when: >-
+        (netgear_wax620_authentication.content | from_json).status | default(-1) | int != 0
+      no_log: true
+    - name: Set WAX620 session headers
+      ansible.builtin.set_fact:
+        netgear_wax620_session_headers:
+          Accept: application/json
+          Content-Type: application/json
+          Cookie: >-
+            {{ netgear_wax620_authentication.cookies_string | default(netgear_wax620_login_session.cookies_string, true) }}; ssid={{ (netgear_wax620_authentication.content | from_json) .system.security_token | b64encode }}
+          Origin: "https://{{ netgear_wax620_host }}"
+          Referer: "https://{{ netgear_wax620_host }}/"
+          X-Requested-With: XMLHttpRequest
+          security: "{{ (netgear_wax620_authentication.content | from_json).system.security_token }}"
+      no_log: true
+    - name: Read WAX620 basic settings
+      ansible.builtin.uri:
+        url: "https://{{ netgear_wax620_host }}/socketCommunication"
+        method: POST
+        body_format: json
+        body:
+          system:
+            basicSettings:
+              deviceMode: ""
+              apName: ""
+              sysCountryRegion: ""
+        headers: "{{ netgear_wax620_session_headers }}"
+        return_content: true
+        status_code: 200
+        timeout: "{{ netgear_wax620_timeout_s }}"
+        validate_certs: "{{ netgear_wax620_validate_certs }}"
+      register: netgear_wax620_basic_settings_response
+      changed_when: false
+      failed_when: >-
+        (netgear_wax620_basic_settings_response.content | from_json).status | default(-1) | int != 0
+      no_log: true
+    - name: Extract current WAX620 basic settings
+      ansible.builtin.set_fact:
+        netgear_wax620_basic_settings_current:
+          apName: >-
+            {{ (netgear_wax620_basic_settings_response.content | from_json) .system.basicSettings.apName }}
+          sysCountryRegion: >-
+            {{ (netgear_wax620_basic_settings_response.content | from_json) .system.basicSettings.sysCountryRegion }}
+    - name: Set desired WAX620 basic settings
+      ansible.builtin.set_fact:
+        netgear_wax620_basic_settings_desired:
+          apName: "{{ netgear_wax620_name }}"
+          sysCountryRegion: "{{ netgear_wax620_country_region }}"
+    - name: Update WAX620 basic settings
+      ansible.builtin.uri:
+        url: "https://{{ netgear_wax620_host }}/socketCommunication"
+        method: POST
+        body_format: json
+        body:
+          system:
+            basicSettings: "{{ netgear_wax620_basic_settings_desired }}"
+        headers: "{{ netgear_wax620_session_headers }}"
+        return_content: true
+        status_code: 200
+        timeout: "{{ netgear_wax620_timeout_s }}"
+        validate_certs: "{{ netgear_wax620_validate_certs }}"
+      register: netgear_wax620_basic_settings_update
+      when: >-
+        netgear_wax620_basic_settings_current != netgear_wax620_basic_settings_desired
+      changed_when: true
+      failed_when: >-
+        (netgear_wax620_basic_settings_update.content | from_json).status | default(-1) | int != 0
+      no_log: true
+  always:
+    - name: Log out of WAX620
+      ansible.builtin.uri:
+        url: "https://{{ netgear_wax620_host }}/logout"
+        method: POST
+        body_format: json
+        body:
+          admin: "{{ netgear_wax620_admin_username }}"
+        headers: "{{ netgear_wax620_session_headers }}"
+        return_content: true
+        status_code: 200
+        timeout: "{{ netgear_wax620_timeout_s }}"
+        validate_certs: "{{ netgear_wax620_validate_certs }}"
+      register: netgear_wax620_logout
+      when: netgear_wax620_session_headers is defined
+      changed_when: false
+      failed_when: >-
+        (netgear_wax620_logout.content | from_json).status | default(-1) | int != 0
+      no_log: true

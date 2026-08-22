@@ -1,0 +1,10 @@
+---
+# The WAX620 JSON API has no public contract. Keep appliance-specific values
+# here so host variables describe intent rather than protocol enums.
+netgear_wax620_host: "{{ ip_management }}"
+netgear_wax620_admin_username: admin
+netgear_wax620_admin_password: ""
+netgear_wax620_name: "{{ inventory_hostname }}"
+netgear_wax620_country_region: "840"
+netgear_wax620_validate_certs: false
+netgear_wax620_timeout_s: 10

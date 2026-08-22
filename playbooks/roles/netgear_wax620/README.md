@@ -12,6 +12,7 @@ The role idempotently manages these basic settings:
 - `sysCountryRegion`, fixed to the US enum `840`
 - Time zone, currently `USA-Pacific` (WAX620 enum `265`)
 - Custom NTP server, defaulting to `ntp.{{ domain_lan }}`
+- Declared MAC access-control groups
 - Static management LAN, DNS, and VLAN settings from `netgear_wax620_lan_settings`
 
 Run it with:
@@ -45,8 +46,7 @@ Responses do not advertise a JSON content type, so `uri` does not provide a
 
 The AP has a simultaneous-login limit. Keep the browser logged out while the
 playbook runs. A failed unauthenticated sequence can consume a session, so do
-not add automatic authentication retries. All tasks that expose session state,
-credentials, or authenticated request headers use `no_log: true`.
+not add automatic authentication retries.
 
 ## Implementation pattern
 
@@ -60,6 +60,16 @@ For every configuration section:
 
 Avoid comparing an entire API response. Responses commonly include UI-only or
 appliance-owned fields that the role should leave unchanged.
+
+## Access-control groups
+
+Access-control groups are `group0` through `group7` under
+`system.accessControlSettings.wlanAccessControlLocalTable`. Model a managed
+group with an explicit slot, policy, and full desired host list. The supported
+getters return group metadata and MAC lists separately. The role combines them
+for a full comparison, then updates only declared groups that differ. Unrelated
+default or custom groups remain unchanged. Configure access-control groups
+before SSIDs that refer to them.
 
 ## Remaining work
 
@@ -95,19 +105,6 @@ Use the existing `ssidGetDetails` and `ssidSetDetails` endpoints. Model SSIDs
 as a list with an explicit `slot`, rather than a mapping whose ordering selects
 `vapN`. The role should manage only declared slots and build each desired
 setting for both `wlan0` and `wlan1`.
-
-### MAC access-control lists
-
-Access-control groups are `group0` through `group7` under
-`system.accessControlSettings.wlanAccessControlLocalTable`. The UI update for
-the Ring rule used a group with `name`, `accessControlPolicy: deny`, and a
-`macList` array. The SSID setter associates the group with
-`accessControlGroup: groupN` on each band.
-
-Model a managed group with an explicit slot, policy, and full desired MAC list.
-Read and compare only those declared groups; do not change unrelated default
-or custom groups. Configure access-control groups before the SSIDs that refer
-to them.
 
 ## Validation checklist
 

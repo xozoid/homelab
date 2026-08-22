@@ -11,7 +11,6 @@
       - netgear_wax620_lan_settings.secondary_dns | length > 0
     fail_msg: >-
       Set netgear_wax620_admin_password from an Ansible Vault variable, use a supported time zone, and provide an NTP server. This role currently supports the WAX620 US country-region enum only.
-  no_log: true
 - name: Configure WAX620
   block:
     - name: Start WAX620 login session
@@ -26,12 +25,10 @@
         validate_certs: "{{ netgear_wax620_validate_certs }}"
       register: netgear_wax620_login_session
       changed_when: false
-      no_log: true
     - name: Assert WAX620 login session was created
       ansible.builtin.assert:
         that: netgear_wax620_login_session.cookies_string | length > 0
         fail_msg: WAX620 did not issue a login-session cookie.
-      no_log: true
     - name: Authenticate to WAX620
       ansible.builtin.uri:
         url: "https://{{ netgear_wax620_host }}/socketCommunication"
@@ -56,7 +53,6 @@
       changed_when: false
       failed_when: >-
         (netgear_wax620_authentication.content | from_json).status | default(-1) | int != 0
-      no_log: true
     - name: Set WAX620 session headers
       ansible.builtin.set_fact:
         netgear_wax620_session_headers:
@@ -68,11 +64,12 @@
           Referer: "https://{{ netgear_wax620_host }}/"
           X-Requested-With: XMLHttpRequest
           security: "{{ (netgear_wax620_authentication.content | from_json).system.security_token }}"
-      no_log: true
     - name: Configure WAX620 basic settings
       ansible.builtin.include_tasks: basic_settings.yaml
     - name: Configure WAX620 time settings
       ansible.builtin.include_tasks: time_settings.yaml
+    - name: Configure WAX620 access-control groups
+      ansible.builtin.include_tasks: access_control.yaml
     - name: Configure WAX620 LAN settings
       ansible.builtin.include_tasks: lan_settings.yaml
   always:
@@ -95,4 +92,3 @@
       changed_when: false
       failed_when: >-
         (netgear_wax620_logout.content | from_json).status | default(-1) | int != 0
-      no_log: true

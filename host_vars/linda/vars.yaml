@@ -2,3 +2,10 @@
 ip_management: "{{ vlan_management.ip }}.150"
 netgear_wax620_host: "{{ inventory_hostname }}.lan.{{ domain }}"
 netgear_wax620_admin_password: "{{ vault_password }}"
+netgear_wax620_access_control_groups:
+  - slot: 3
+    name: Ring
+    policy: deny
+    hosts:
+      - name: ring-camera
+        mac: C2-4B-F8-0E-B8-F4

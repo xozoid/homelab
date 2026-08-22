@@ -27,7 +27,6 @@
   changed_when: false
   failed_when: >-
     (netgear_wax620_lan_settings_response.content | from_json).status | default(-1) | int != 0
-  no_log: true
 - name: Extract current WAX620 LAN settings
   ansible.builtin.set_fact:
     netgear_wax620_lan_settings_current:
@@ -75,4 +74,3 @@
   changed_when: true
   failed_when: >-
     (netgear_wax620_lan_settings_update.content | from_json).status | default(-1) | int != 0
-  no_log: true

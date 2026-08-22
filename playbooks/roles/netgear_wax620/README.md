@@ -10,6 +10,8 @@ The role idempotently manages these basic settings:
 
 - `apName`
 - `sysCountryRegion`, fixed to the US enum `840`
+- Time zone, currently `USA-Pacific` (WAX620 enum `265`)
+- Custom NTP server, defaulting to `ntp.{{ domain_lan }}`
 
 Run it with:
 

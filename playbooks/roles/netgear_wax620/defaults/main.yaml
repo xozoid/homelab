@@ -6,5 +6,9 @@ netgear_wax620_admin_username: admin
 netgear_wax620_admin_password: ""
 netgear_wax620_name: "{{ inventory_hostname }}"
 netgear_wax620_country_region: "840"
+netgear_wax620_timezone: USA-Pacific
+netgear_wax620_time_zone_ids:
+  USA-Pacific: "265"
+netgear_wax620_ntp_server: "ntp.{{ domain_lan }}"
 netgear_wax620_validate_certs: false
 netgear_wax620_timeout_s: 10

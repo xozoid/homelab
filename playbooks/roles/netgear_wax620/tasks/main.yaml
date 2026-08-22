@@ -4,8 +4,10 @@
     that:
       - netgear_wax620_admin_password | length > 0
       - netgear_wax620_country_region == '840'
+      - netgear_wax620_timezone in netgear_wax620_time_zone_ids
+      - netgear_wax620_ntp_server | length > 0
     fail_msg: >-
-      Set netgear_wax620_admin_password from an Ansible Vault variable. This role currently supports the WAX620 US country-region enum only.
+      Set netgear_wax620_admin_password from an Ansible Vault variable, use a supported time zone, and provide an NTP server. This role currently supports the WAX620 US country-region enum only.
   no_log: true
 - name: Configure WAX620
   block:
@@ -116,6 +118,72 @@
       changed_when: true
       failed_when: >-
         (netgear_wax620_basic_settings_update.content | from_json).status | default(-1) | int != 0
+      no_log: true
+    - name: Read WAX620 time settings
+      ansible.builtin.uri:
+        url: "https://{{ netgear_wax620_host }}/socketCommunication"
+        method: POST
+        body_format: json
+        body:
+          system:
+            timeSettings:
+              timeZone: ""
+              ntpClientStatus: ""
+              customNtpServer: ""
+              ntpAddr: ""
+              ntpAddrType: ""
+            monitor:
+              currentTime: ""
+        headers: "{{ netgear_wax620_session_headers }}"
+        return_content: true
+        status_code: 200
+        timeout: "{{ netgear_wax620_timeout_s }}"
+        validate_certs: "{{ netgear_wax620_validate_certs }}"
+      register: netgear_wax620_time_settings_response
+      changed_when: false
+      failed_when: >-
+        (netgear_wax620_time_settings_response.content | from_json).status | default(-1) | int != 0
+      no_log: true
+    - name: Extract current WAX620 time settings
+      ansible.builtin.set_fact:
+        netgear_wax620_time_settings_current:
+          timeZone: >-
+            {{ (netgear_wax620_time_settings_response.content | from_json).system.timeSettings.timeZone }}
+          ntpClientStatus: >-
+            {{ (netgear_wax620_time_settings_response.content | from_json).system.timeSettings.ntpClientStatus }}
+          customNtpServer: >-
+            {{ (netgear_wax620_time_settings_response.content | from_json).system.timeSettings.customNtpServer }}
+          ntpAddr: >-
+            {{ (netgear_wax620_time_settings_response.content | from_json).system.timeSettings.ntpAddr }}
+          ntpAddrType: >-
+            {{ (netgear_wax620_time_settings_response.content | from_json).system.timeSettings.ntpAddrType }}
+    - name: Set desired WAX620 time settings
+      ansible.builtin.set_fact:
+        netgear_wax620_time_settings_desired:
+          timeZone: "{{ netgear_wax620_time_zone_ids[netgear_wax620_timezone] }}"
+          ntpClientStatus: "1"
+          customNtpServer: "1"
+          ntpAddr: "{{ netgear_wax620_ntp_server }}"
+          ntpAddrType: "0"
+    - name: Update WAX620 time settings
+      ansible.builtin.uri:
+        url: "https://{{ netgear_wax620_host }}/socketCommunication"
+        method: POST
+        body_format: json
+        body:
+          system:
+            timeSettings: "{{ netgear_wax620_time_settings_desired }}"
+        headers: "{{ netgear_wax620_session_headers }}"
+        return_content: true
+        status_code: 200
+        timeout: "{{ netgear_wax620_timeout_s }}"
+        validate_certs: "{{ netgear_wax620_validate_certs }}"
+      register: netgear_wax620_time_settings_update
+      when: >-
+        netgear_wax620_time_settings_current != netgear_wax620_time_settings_desired
+      changed_when: true
+      failed_when: >-
+        (netgear_wax620_time_settings_update.content | from_json).status | default(-1) | int != 0
       no_log: true
   always:
     - name: Log out of WAX620

@@ -1,0 +1,50 @@
+---
+ip_management: "{{ vlan_management.ip }}.100"
+qnap_qsw_m2116p_2t2s_admin_password: "{{ vault_password }}"
+qnap_qsw_m2116p_2t2s_ports:
+  7:
+    description: morbo
+    poe: true
+    tagged:
+      - management
+      - trusted
+      - iot
+      - guest
+  9:
+    description: mom
+    untagged: management
+  11:
+    description: hypnotoad
+    untagged: networking
+  13:
+    description: nibbler-eth1
+    untagged: lan
+    tagged:
+      - management
+      - servers
+      - security
+      - automation
+      - networking
+      - trusted
+      - iot
+      - guest
+  15:
+    description: nibbler-eth2
+    tagged:
+      - management
+      - servers
+      - automation
+      - networking
+  17:
+    description: sal
+    untagged: lan
+    tagged:
+      - management
+      - trusted
+      - iot
+      - guest
+  18:
+    description: hermes
+    tagged:
+      - management
+      - servers

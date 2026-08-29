@@ -1,0 +1,165 @@
+---
+- name: Validate configured QSW-M2116P-2T2S ports
+  ansible.builtin.assert:
+    that:
+      - item.key | int >= 1
+      - item.key | int <= qnap_qsw_m2116p_2t2s_physical_port_count
+      - item.value is mapping
+      - item.value.description | default('') | length > 0
+    fail_msg: >-
+      Each configured QSW-M2116P-2T2S port must have a valid physical port number and description.
+  loop: "{{ qnap_qsw_m2116p_2t2s_ports | dict2items }}"
+  loop_control:
+    label: "Port {{ item.key }}"
+- name: Read QSW-M2116P-2T2S ports
+  ansible.builtin.uri:
+    url: "http://{{ qnap_qsw_m2116p_2t2s_active_host }}/api/v3/ports"
+    method: GET
+    headers: "{{ qnap_qsw_m2116p_2t2s_session_headers }}"
+    return_content: true
+    status_code: 200
+    timeout: "{{ qnap_qsw_m2116p_2t2s_request_timeout_s }}"
+  register: qnap_qsw_m2116p_2t2s_ports_response
+  no_log: true
+  check_mode: false
+  changed_when: false
+  failed_when: >-
+    (qnap_qsw_m2116p_2t2s_ports_response.content | from_json).error_code | default(-1) | int != 200
+- name: Extract current QSW-M2116P-2T2S physical ports
+  ansible.builtin.set_fact:
+    qnap_qsw_m2116p_2t2s_physical_ports_current: |-
+      {{
+        (qnap_qsw_m2116p_2t2s_ports_response.content | from_json).result
+        | selectattr('val.Type', 'equalto', 'ethernetCsmacd')
+        | list
+      }}
+- name: Validate QSW-M2116P-2T2S physical ports
+  ansible.builtin.assert:
+    that:
+      - qnap_qsw_m2116p_2t2s_physical_ports_current | length == qnap_qsw_m2116p_2t2s_physical_port_count
+      - |-
+        qnap_qsw_m2116p_2t2s_physical_ports_current
+        | map(attribute='key')
+        | map('int')
+        | unique
+        | length == qnap_qsw_m2116p_2t2s_physical_port_count
+      - |-
+        qnap_qsw_m2116p_2t2s_physical_ports_current
+        | map(attribute='key')
+        | map('int')
+        | min == 1
+      - |-
+        qnap_qsw_m2116p_2t2s_physical_ports_current
+        | map(attribute='key')
+        | map('int')
+        | max == qnap_qsw_m2116p_2t2s_physical_port_count
+    fail_msg: >-
+      The switch did not return the expected set of physical ports; no port changes were made.
+- name: Initialize desired QSW-M2116P-2T2S port updates
+  ansible.builtin.set_fact:
+    qnap_qsw_m2116p_2t2s_port_updates: []
+- name: Build desired QSW-M2116P-2T2S port updates
+  ansible.builtin.set_fact:
+    qnap_qsw_m2116p_2t2s_port_updates: |-
+      {{
+        qnap_qsw_m2116p_2t2s_port_updates
+        + [
+          {
+            'idx': item.key,
+            'data': item.val
+            | combine(
+              {
+                'Shutdown': qnap_qsw_m2116p_2t2s_port_shutdown,
+                'PortDescription': qnap_qsw_m2116p_2t2s_port_description,
+                'Speed': (
+                  'autoNegMode'
+                  if item.val.AutoMode | bool
+                  else item.val.Speed
+                ),
+              }
+            ),
+          }
+        ]
+      }}
+  vars:
+    qnap_qsw_m2116p_2t2s_port_enabled: >-
+      {{ (item.key | int) in qnap_qsw_m2116p_2t2s_ports }}
+    qnap_qsw_m2116p_2t2s_port_shutdown: >-
+      {{ not (qnap_qsw_m2116p_2t2s_port_enabled | bool) }}
+    qnap_qsw_m2116p_2t2s_port_description: >-
+      {{ qnap_qsw_m2116p_2t2s_ports.get(item.key | int, {}).description | default('') }}
+  loop: "{{ qnap_qsw_m2116p_2t2s_physical_ports_current }}"
+  loop_control:
+    label: "Port {{ item.key }}"
+  when: |-
+    item.val.Shutdown | bool != qnap_qsw_m2116p_2t2s_port_shutdown | bool
+    or item.val.PortDescription != qnap_qsw_m2116p_2t2s_port_description
+  # NOTE: QSS returns an empty speed for auto-negotiating ports but requires autoNegMode in PUT payloads.
+- name: Report planned QSW-M2116P-2T2S port updates
+  ansible.builtin.debug:
+    msg: >-
+      Would update ports {{ qnap_qsw_m2116p_2t2s_port_updates | map(attribute='idx') | join(', ') }}.
+  when:
+    - qnap_qsw_m2116p_2t2s_port_updates | length > 0
+    - ansible_check_mode
+  changed_when: true
+- name: Update QSW-M2116P-2T2S ports
+  ansible.builtin.uri:
+    url: "http://{{ qnap_qsw_m2116p_2t2s_active_host }}/api/v3/portlist"
+    method: PUT
+    body_format: json
+    body: "{{ qnap_qsw_m2116p_2t2s_port_updates }}"
+    headers: "{{ qnap_qsw_m2116p_2t2s_session_headers }}"
+    return_content: true
+    status_code: 200
+    timeout: "{{ qnap_qsw_m2116p_2t2s_request_timeout_s }}"
+  register: qnap_qsw_m2116p_2t2s_port_update
+  no_log: true
+  when:
+    - qnap_qsw_m2116p_2t2s_port_updates | length > 0
+    - not ansible_check_mode
+  changed_when: true
+  failed_when: >-
+    (qnap_qsw_m2116p_2t2s_port_update.content | from_json).error_code | default(-1) | int != 200
+- name: Read updated QSW-M2116P-2T2S ports
+  ansible.builtin.uri:
+    url: "http://{{ qnap_qsw_m2116p_2t2s_active_host }}/api/v3/ports"
+    method: GET
+    headers: "{{ qnap_qsw_m2116p_2t2s_session_headers }}"
+    return_content: true
+    status_code: 200
+    timeout: "{{ qnap_qsw_m2116p_2t2s_request_timeout_s }}"
+  register: qnap_qsw_m2116p_2t2s_ports_verification
+  no_log: true
+  check_mode: false
+  when: not ansible_check_mode
+  changed_when: false
+  failed_when: >-
+    (qnap_qsw_m2116p_2t2s_ports_verification.content | from_json).error_code | default(-1) | int != 200
+- name: Verify QSW-M2116P-2T2S physical port settings
+  ansible.builtin.assert:
+    that:
+      - item.val.Shutdown | bool == qnap_qsw_m2116p_2t2s_port_shutdown | bool
+      - item.val.PortDescription == qnap_qsw_m2116p_2t2s_port_description
+    fail_msg: "Port {{ item.key }} did not retain its desired settings."
+  vars:
+    qnap_qsw_m2116p_2t2s_port_enabled: >-
+      {{ (item.key | int) in qnap_qsw_m2116p_2t2s_ports }}
+    qnap_qsw_m2116p_2t2s_port_shutdown: >-
+      {{ not (qnap_qsw_m2116p_2t2s_port_enabled | bool) }}
+    qnap_qsw_m2116p_2t2s_port_description: >-
+      {{ qnap_qsw_m2116p_2t2s_ports.get(item.key | int, {}).description | default('') }}
+  loop: |-
+    {{
+      []
+      if ansible_check_mode
+      else (
+        (qnap_qsw_m2116p_2t2s_ports_verification.content | from_json).result
+        | selectattr('val.Type', 'equalto', 'ethernetCsmacd')
+        | list
+      )
+    }}
+  loop_control:
+    label: "Port {{ item.key }}"
+  when: not ansible_check_mode
+  # NOTE: LLAG interfaces share this API but are virtual and remain outside the physical port policy.

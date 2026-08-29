@@ -7,7 +7,7 @@ netgear_wax620_radio_settings:
     enabled: true
     mode: 11ax
     guard_interval: long-800-ns
-    tx_power_percent: 25
+    tx_power_percent: 50
     channel_width_mhz: 20
     channel: 11
   wlan1:

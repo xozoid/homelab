@@ -1,0 +1,13 @@
+---
+qnap_qsw_m2116p_2t2s_vlan_ids_defaults:
+  automation: "{{ vlan_automation.id }}"
+  guest: "{{ vlan_guest.id }}"
+  iot: "{{ vlan_iot.id }}"
+  lan: "{{ vlan_lan.id }}"
+  management: "{{ vlan_management.id }}"
+  networking: "{{ vlan_networking.id }}"
+  security: "{{ vlan_security.id }}"
+  servers: "{{ vlan_servers.id }}"
+  trusted: "{{ vlan_trusted.id }}"
+qnap_qsw_m2116p_2t2s_untagged_vlan_trap_id_default: 2
+qnap_qsw_m2116p_2t2s_untagged_vlan_trap_name_default: trap

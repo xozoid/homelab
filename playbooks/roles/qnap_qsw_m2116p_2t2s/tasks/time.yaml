@@ -1,0 +1,106 @@
+---
+- name: Read QSW-M2116P-2T2S timezone
+  ansible.builtin.uri:
+    url: "http://{{ qnap_qsw_m2116p_2t2s_active_host }}/api/v3/sntp/timezone"
+    method: GET
+    headers: "{{ qnap_qsw_m2116p_2t2s_session_headers }}"
+    return_content: true
+    status_code: 200
+    timeout: "{{ qnap_qsw_m2116p_2t2s_request_timeout_s }}"
+  register: qnap_qsw_m2116p_2t2s_timezone_response
+  no_log: true
+  check_mode: false
+  changed_when: false
+  failed_when: >-
+    (qnap_qsw_m2116p_2t2s_timezone_response.content | from_json).error_code | default(-1) | int != 200
+- name: Read QSW-M2116P-2T2S NTP servers
+  ansible.builtin.uri:
+    url: "http://{{ qnap_qsw_m2116p_2t2s_active_host }}/api/v3/sntp/server"
+    method: GET
+    headers: "{{ qnap_qsw_m2116p_2t2s_session_headers }}"
+    return_content: true
+    status_code: 200
+    timeout: "{{ qnap_qsw_m2116p_2t2s_request_timeout_s }}"
+  register: qnap_qsw_m2116p_2t2s_ntp_servers_response
+  no_log: true
+  check_mode: false
+  changed_when: false
+  failed_when: >-
+    (qnap_qsw_m2116p_2t2s_ntp_servers_response.content | from_json).error_code | default(-1) | int != 200
+- name: Extract current QSW-M2116P-2T2S time settings
+  ansible.builtin.set_fact:
+    qnap_qsw_m2116p_2t2s_timezone_location_index_current: >-
+      {{ (qnap_qsw_m2116p_2t2s_timezone_response.content | from_json).result.locationIndex | int }}
+    qnap_qsw_m2116p_2t2s_ntp_servers_current: >-
+      {{ (qnap_qsw_m2116p_2t2s_ntp_servers_response.content | from_json).result }}
+    qnap_qsw_m2116p_2t2s_timezone_location_index_desired: >-
+      {{ qnap_qsw_m2116p_2t2s_timezone_location_indexes[qnap_qsw_m2116p_2t2s_time.timezone_name] | int }}
+- name: Validate current QSW-M2116P-2T2S NTP servers
+  ansible.builtin.assert:
+    that:
+      - qnap_qsw_m2116p_2t2s_ntp_servers_current | selectattr('key', 'equalto', '1') | list | length == 1
+    fail_msg: The switch did not return NTP server slot 1; no time changes were made.
+- name: Extract current QSW-M2116P-2T2S primary NTP server
+  ansible.builtin.set_fact:
+    qnap_qsw_m2116p_2t2s_ntp_server_current: |-
+      {{
+        (
+          qnap_qsw_m2116p_2t2s_ntp_servers_current
+          | selectattr('key', 'equalto', '1')
+          | first
+        ).val.Address
+      }}
+- name: Update QSW-M2116P-2T2S timezone
+  ansible.builtin.uri:
+    url: "http://{{ qnap_qsw_m2116p_2t2s_active_host }}/api/v3/sntp/timezone"
+    method: PUT
+    body_format: raw
+    body: >-
+      {{ {'locationIndex': qnap_qsw_m2116p_2t2s_timezone_location_index_desired | int} | to_json }}
+    headers: "{{ qnap_qsw_m2116p_2t2s_session_headers }}"
+    return_content: true
+    status_code: 200
+    timeout: "{{ qnap_qsw_m2116p_2t2s_request_timeout_s }}"
+  register: qnap_qsw_m2116p_2t2s_timezone_update
+  no_log: true
+  when:
+    - qnap_qsw_m2116p_2t2s_timezone_location_index_current | int != qnap_qsw_m2116p_2t2s_timezone_location_index_desired | int
+    - not ansible_check_mode
+  changed_when: true
+  failed_when: >-
+    (qnap_qsw_m2116p_2t2s_timezone_update.content | from_json).error_code | default(-1) | int != 200
+- name: Update QSW-M2116P-2T2S primary NTP server
+  ansible.builtin.uri:
+    url: "http://{{ qnap_qsw_m2116p_2t2s_active_host }}/api/v3/sntp/server"
+    method: PUT
+    body_format: raw
+    body: >-
+      {{ {'idx': '1', 'data': {'Address': qnap_qsw_m2116p_2t2s_time.ntp_server}} | to_json }}
+    headers: "{{ qnap_qsw_m2116p_2t2s_session_headers }}"
+    return_content: true
+    status_code: 200
+    timeout: "{{ qnap_qsw_m2116p_2t2s_request_timeout_s }}"
+  register: qnap_qsw_m2116p_2t2s_ntp_server_update
+  no_log: true
+  when:
+    - qnap_qsw_m2116p_2t2s_ntp_server_current != qnap_qsw_m2116p_2t2s_time.ntp_server
+    - not ansible_check_mode
+  changed_when: true
+  failed_when: >-
+    (qnap_qsw_m2116p_2t2s_ntp_server_update.content | from_json).error_code | default(-1) | int != 200
+- name: Synchronize QSW-M2116P-2T2S time
+  ansible.builtin.uri:
+    url: "http://{{ qnap_qsw_m2116p_2t2s_active_host }}/api/v3/sntp/sync"
+    method: POST
+    headers: "{{ qnap_qsw_m2116p_2t2s_session_headers }}"
+    return_content: true
+    status_code: 200
+    timeout: "{{ qnap_qsw_m2116p_2t2s_request_timeout_s }}"
+  register: qnap_qsw_m2116p_2t2s_time_sync
+  no_log: true
+  when:
+    - not ansible_check_mode
+    - qnap_qsw_m2116p_2t2s_timezone_update is changed or qnap_qsw_m2116p_2t2s_ntp_server_update is changed
+  changed_when: true
+  failed_when: >-
+    (qnap_qsw_m2116p_2t2s_time_sync.content | from_json).error_code | default(-1) | int != 200

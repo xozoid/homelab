@@ -10,6 +10,9 @@ wireless_access_points:
   hosts:
     linda:
     morbo:
+managed_switches:
+  hosts:
+    leela:
 hw_nibbler:
   hosts:
     nibbler:

@@ -1,0 +1,53 @@
+---
+- name: Update QSW-M2116P-2T2S PoE on port {{ qnap_qsw_m2116p_2t2s_poe_update_requested.idx }}
+  ansible.builtin.uri:
+    url: "http://{{ qnap_qsw_m2116p_2t2s_active_host }}/api/v3/poe/interface"
+    method: PUT
+    body_format: raw
+    body: |-
+      {{
+        qnap_qsw_m2116p_2t2s_poe_update_requested
+        | combine(
+          {
+            'data': qnap_qsw_m2116p_2t2s_poe_update_requested.data
+            | combine(
+              {
+                'MaxPower': qnap_qsw_m2116p_2t2s_poe_update_requested.data.MaxPower | int,
+              }
+            ),
+          }
+        )
+        | to_json
+      }}
+    headers: "{{ qnap_qsw_m2116p_2t2s_session_headers }}"
+    return_content: true
+    status_code: 200
+    timeout: "{{ qnap_qsw_m2116p_2t2s_request_timeout_s }}"
+  register: qnap_qsw_m2116p_2t2s_poe_update_response
+  no_log: true
+  changed_when: |-
+    qnap_qsw_m2116p_2t2s_poe_update_response.status | default(-1) | int == 200
+    and qnap_qsw_m2116p_2t2s_poe_update_response.json.error_code | default(-1) | int == 200
+  failed_when: false
+- name: Collect failed QSW-M2116P-2T2S PoE update on port {{ qnap_qsw_m2116p_2t2s_poe_update_requested.idx }}
+  ansible.builtin.set_fact:
+    qnap_qsw_m2116p_2t2s_poe_update_failures: |-
+      {{
+        qnap_qsw_m2116p_2t2s_poe_update_failures
+        + [
+          {
+            'port': qnap_qsw_m2116p_2t2s_poe_update_requested.idx,
+            'http_status': qnap_qsw_m2116p_2t2s_poe_update_response.status | default(-1),
+            'error_code': qnap_qsw_m2116p_2t2s_poe_update_result.error_code | default(-1),
+            'error_message': qnap_qsw_m2116p_2t2s_poe_update_result.error_message
+            | default('No QSS error message'),
+          }
+        ]
+      }}
+  vars:
+    qnap_qsw_m2116p_2t2s_poe_update_result: >-
+      {{ qnap_qsw_m2116p_2t2s_poe_update_response.json | default({}) }}
+  no_log: true
+  when: |-
+    qnap_qsw_m2116p_2t2s_poe_update_response.status | default(-1) | int != 200
+    or qnap_qsw_m2116p_2t2s_poe_update_result.error_code | default(-1) | int != 200

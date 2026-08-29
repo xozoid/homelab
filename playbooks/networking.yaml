@@ -1,4 +1,10 @@
 ---
+- name: Configure managed switches
+  hosts: leela
+  connection: local
+  gather_facts: false
+  roles:
+    - role: qnap_qsw_m2116p_2t2s
 - name: Setup interfaces with netplan
   hosts: eth_netplan
   roles:

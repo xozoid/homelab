@@ -1,0 +1,100 @@
+---
+- name: Load QSW-M2116P-2T2S section defaults
+  ansible.builtin.include_vars:
+    file: "{{ role_path }}/defaults/{{ item }}.yaml"
+  loop:
+    - connection
+    - ip_settings
+    - poe
+    - ports
+    - time
+    - vlans
+- name: Validate QSW-M2116P-2T2S role inputs
+  ansible.builtin.assert:
+    that:
+      - qnap_qsw_m2116p_2t2s_host | length > 0
+      - qnap_qsw_m2116p_2t2s_admin_username | length > 0
+      - qnap_qsw_m2116p_2t2s_admin_password | length > 0
+      - qnap_qsw_m2116p_2t2s_expected_hostname | length > 0
+      - qnap_qsw_m2116p_2t2s_expected_model == 'QSW-M2116P-2T2S'
+      - qnap_qsw_m2116p_2t2s_ip_settings.vlan_id | int != 1
+      - qnap_qsw_m2116p_2t2s_ip_settings.ip_address | length > 0
+      - qnap_qsw_m2116p_2t2s_ip_settings.gateway | length > 0
+      - qnap_qsw_m2116p_2t2s_ip_settings.dns_servers | length > 0
+      - qnap_qsw_m2116p_2t2s_ports is mapping
+      - qnap_qsw_m2116p_2t2s_ports | length > 0
+      - qnap_qsw_m2116p_2t2s_poe_capabilities is mapping
+      - qnap_qsw_m2116p_2t2s_poe_capabilities | length > 0
+      - qnap_qsw_m2116p_2t2s_time is mapping
+      - qnap_qsw_m2116p_2t2s_time.timezone_name in qnap_qsw_m2116p_2t2s_timezone_location_indexes
+      - qnap_qsw_m2116p_2t2s_time.ntp_server | length > 0
+      - qnap_qsw_m2116p_2t2s_vlan_ids is mapping
+      - qnap_qsw_m2116p_2t2s_vlan_ids | length > 0
+      - qnap_qsw_m2116p_2t2s_untagged_vlan_trap_id | int >= 1
+      - qnap_qsw_m2116p_2t2s_untagged_vlan_trap_id | int <= 4094
+      - |-
+        (qnap_qsw_m2116p_2t2s_untagged_vlan_trap_id | int)
+        not in (
+          qnap_qsw_m2116p_2t2s_vlan_ids.values()
+          | map('int')
+          | list
+        )
+      - qnap_qsw_m2116p_2t2s_untagged_vlan_trap_name | length > 0
+    fail_msg: |-
+      {{
+        'Set the QSW-M2116P-2T2S password from an Ansible Vault variable'
+        + ' and provide valid connection, management IP, port, VLAN, PoE,'
+        + ' and time settings.'
+      }}
+- name: Read QSW-M2116P-2T2S identity
+  ansible.builtin.uri:
+    url: "http://{{ qnap_qsw_m2116p_2t2s_host }}/api/about"
+    method: GET
+    return_content: true
+    status_code: 200
+    timeout: "{{ qnap_qsw_m2116p_2t2s_request_timeout_s }}"
+  register: qnap_qsw_m2116p_2t2s_about_response
+  check_mode: false
+  changed_when: false
+- name: Extract QSW-M2116P-2T2S identity
+  ansible.builtin.set_fact:
+    qnap_qsw_m2116p_2t2s_active_host: "{{ qnap_qsw_m2116p_2t2s_host }}"
+    qnap_qsw_m2116p_2t2s_about: "{{ (qnap_qsw_m2116p_2t2s_about_response.content | from_json).result }}"
+- name: Validate QSW-M2116P-2T2S identity
+  ansible.builtin.assert:
+    that:
+      - (qnap_qsw_m2116p_2t2s_about_response.content | from_json).error_code | default(-1) | int == 200
+      - qnap_qsw_m2116p_2t2s_about.Hostname == qnap_qsw_m2116p_2t2s_expected_hostname
+      - qnap_qsw_m2116p_2t2s_about.Model == qnap_qsw_m2116p_2t2s_expected_model
+    fail_msg: >-
+      The configured address did not return the expected QSW-M2116P-2T2S identity.
+- name: Configure QSW-M2116P-2T2S
+  block:
+    - name: Authenticate to QSW-M2116P-2T2S
+      ansible.builtin.include_tasks: authenticate.yaml
+    - name: Configure QSW-M2116P-2T2S ports
+      ansible.builtin.include_tasks: ports.yaml
+    - name: Configure QSW-M2116P-2T2S VLANs
+      ansible.builtin.include_tasks: vlans.yaml
+    - name: Configure QSW-M2116P-2T2S PoE
+      ansible.builtin.include_tasks: poe.yaml
+    - name: Configure QSW-M2116P-2T2S time
+      ansible.builtin.include_tasks: time.yaml
+    - name: Configure QSW-M2116P-2T2S IP settings
+      ansible.builtin.include_tasks: ip_settings.yaml
+  always:
+    - name: Log out of QSW-M2116P-2T2S
+      ansible.builtin.uri:
+        url: "http://{{ qnap_qsw_m2116p_2t2s_active_host }}/api/v3/users/logout"
+        method: POST
+        headers: "{{ qnap_qsw_m2116p_2t2s_session_headers }}"
+        return_content: true
+        status_code: 200
+        timeout: "{{ qnap_qsw_m2116p_2t2s_request_timeout_s }}"
+      register: qnap_qsw_m2116p_2t2s_logout
+      no_log: true
+      check_mode: false
+      when: qnap_qsw_m2116p_2t2s_session_headers is defined
+      changed_when: false
+      failed_when: >-
+        (qnap_qsw_m2116p_2t2s_logout.content | from_json).error_code | default(-1) | int != 200

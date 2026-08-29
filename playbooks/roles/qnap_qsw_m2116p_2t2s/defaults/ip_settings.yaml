@@ -1,0 +1,8 @@
+---
+qnap_qsw_m2116p_2t2s_ip_settings_defaults:
+  vlan_id: "{{ vlan_management.id }}"
+  ip_address: "{{ ip_management }}"
+  netmask: 255.255.255.0
+  gateway: "{{ vlan_management.ip }}.1"
+  dns_servers:
+    - "{{ ip_dns_0 }}"

@@ -7,6 +7,7 @@
     - ip_settings
     - poe
     - ports
+    - time
 - name: Validate QSW-M2116P-2T2S role inputs
   ansible.builtin.assert:
     that:
@@ -23,8 +24,11 @@
       - qnap_qsw_m2116p_2t2s_ports | length > 0
       - qnap_qsw_m2116p_2t2s_poe_capabilities is mapping
       - qnap_qsw_m2116p_2t2s_poe_capabilities | length > 0
+      - qnap_qsw_m2116p_2t2s_time is mapping
+      - qnap_qsw_m2116p_2t2s_time.timezone_name in qnap_qsw_m2116p_2t2s_timezone_location_indexes
+      - qnap_qsw_m2116p_2t2s_time.ntp_server | length > 0
     fail_msg: >-
-      Set the QSW-M2116P-2T2S password from an Ansible Vault variable and provide valid connection, management IP, port, and PoE settings.
+      Set the QSW-M2116P-2T2S password from an Ansible Vault variable and provide valid connection, management IP, port, PoE, and time settings.
 - name: Read QSW-M2116P-2T2S identity
   ansible.builtin.uri:
     url: "http://{{ qnap_qsw_m2116p_2t2s_host }}/api/about"
@@ -55,6 +59,8 @@
       ansible.builtin.include_tasks: ports.yaml
     - name: Configure QSW-M2116P-2T2S PoE
       ansible.builtin.include_tasks: poe.yaml
+    - name: Configure QSW-M2116P-2T2S time
+      ansible.builtin.include_tasks: time.yaml
     - name: Configure QSW-M2116P-2T2S IP settings
       ansible.builtin.include_tasks: ip_settings.yaml
   always:

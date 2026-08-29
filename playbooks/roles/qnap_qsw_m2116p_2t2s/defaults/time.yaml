@@ -1,0 +1,6 @@
+---
+qnap_qsw_m2116p_2t2s_time_defaults:
+  timezone_name: "{{ timezone }}"
+  ntp_server: "ntp.{{ domain_lan }}"
+qnap_qsw_m2116p_2t2s_timezone_location_indexes:
+  America/Los_Angeles: 5

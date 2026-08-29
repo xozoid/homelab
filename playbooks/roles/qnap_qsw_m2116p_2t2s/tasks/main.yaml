@@ -5,6 +5,7 @@
   loop:
     - connection
     - ip_settings
+    - ports
 - name: Validate QSW-M2116P-2T2S role inputs
   ansible.builtin.assert:
     that:
@@ -17,8 +18,10 @@
       - qnap_qsw_m2116p_2t2s_ip_settings.ip_address | length > 0
       - qnap_qsw_m2116p_2t2s_ip_settings.gateway | length > 0
       - qnap_qsw_m2116p_2t2s_ip_settings.dns_servers | length > 0
+      - qnap_qsw_m2116p_2t2s_ports is mapping
+      - qnap_qsw_m2116p_2t2s_ports | length > 0
     fail_msg: >-
-      Set the QSW-M2116P-2T2S password from an Ansible Vault variable and provide valid connection and management IP settings.
+      Set the QSW-M2116P-2T2S password from an Ansible Vault variable and provide valid connection, management IP, and port settings.
 - name: Read QSW-M2116P-2T2S identity
   ansible.builtin.uri:
     url: "http://{{ qnap_qsw_m2116p_2t2s_host }}/api/about"
@@ -45,6 +48,8 @@
   block:
     - name: Authenticate to QSW-M2116P-2T2S
       ansible.builtin.include_tasks: authenticate.yaml
+    - name: Configure QSW-M2116P-2T2S ports
+      ansible.builtin.include_tasks: ports.yaml
     - name: Configure QSW-M2116P-2T2S IP settings
       ansible.builtin.include_tasks: ip_settings.yaml
   always:

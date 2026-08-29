@@ -2,7 +2,7 @@
 ip_management: "{{ vlan_management.ip }}.100"
 qnap_qsw_m2116p_2t2s_admin_password: "{{ vault_password }}"
 qnap_qsw_m2116p_2t2s_ports:
-  1:
+  7:
     description: morbo
     poe: true
     tagged:
@@ -10,20 +10,13 @@ qnap_qsw_m2116p_2t2s_ports:
       - trusted
       - iot
       - guest
-  3:
-    description: hypnotoad
-    untagged: networking
-  4:
+  9:
     description: mom
     untagged: management
-  6:
-    description: nibbler-eth2
-    tagged:
-      - management
-      - servers
-      - automation
-      - networking
-  8:
+  11:
+    description: hypnotoad
+    untagged: networking
+  13:
     description: nibbler-eth1
     untagged: lan
     tagged:
@@ -35,6 +28,13 @@ qnap_qsw_m2116p_2t2s_ports:
       - trusted
       - iot
       - guest
+  15:
+    description: nibbler-eth2
+    tagged:
+      - management
+      - servers
+      - automation
+      - networking
   17:
     description: sal
     untagged: lan

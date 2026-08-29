@@ -1,0 +1,145 @@
+---
+- name: Read QSW-M2116P-2T2S IP settings
+  ansible.builtin.uri:
+    url: "http://{{ qnap_qsw_m2116p_2t2s_active_host }}/api/v3/ip/config"
+    method: GET
+    headers: "{{ qnap_qsw_m2116p_2t2s_session_headers }}"
+    return_content: true
+    status_code: 200
+    timeout: "{{ qnap_qsw_m2116p_2t2s_request_timeout_s }}"
+  register: qnap_qsw_m2116p_2t2s_ip_settings_response
+  no_log: true
+  check_mode: false
+  changed_when: false
+  failed_when: >-
+    (qnap_qsw_m2116p_2t2s_ip_settings_response.content | from_json).error_code | default(-1) | int != 200
+- name: Extract current QSW-M2116P-2T2S IP settings
+  ansible.builtin.set_fact:
+    qnap_qsw_m2116p_2t2s_ip_configurations_current: >-
+      {{ (qnap_qsw_m2116p_2t2s_ip_settings_response.content | from_json).result }}
+    qnap_qsw_m2116p_2t2s_management_configurations_current: |-
+      {{
+        (qnap_qsw_m2116p_2t2s_ip_settings_response.content | from_json).result
+        | selectattr('vlanId', 'equalto', qnap_qsw_m2116p_2t2s_ip_settings.vlan_id | string)
+        | list
+      }}
+- name: Validate manual management VLAN bootstrap
+  ansible.builtin.assert:
+    that:
+      - qnap_qsw_m2116p_2t2s_management_configurations_current | length == 1
+      - qnap_qsw_m2116p_2t2s_management_configurations_current[0].enable | bool
+    fail_msg: >-
+      Manually create and enable management VLAN {{ qnap_qsw_m2116p_2t2s_ip_settings.vlan_id }} before running this role.
+- name: Set desired QSW-M2116P-2T2S management IP settings
+  ansible.builtin.set_fact:
+    qnap_qsw_m2116p_2t2s_management_configuration_desired:
+      vlanId: "{{ qnap_qsw_m2116p_2t2s_ip_settings.vlan_id | string }}"
+      enableV4DHCP: false
+      enable: true
+      ip4: "{{ qnap_qsw_m2116p_2t2s_ip_settings.ip_address }}"
+      ip4Mask: "{{ qnap_qsw_m2116p_2t2s_ip_settings.netmask }}"
+      ip4Gateway: "{{ qnap_qsw_m2116p_2t2s_ip_settings.gateway }}"
+      dnsServers: "{{ qnap_qsw_m2116p_2t2s_ip_settings.dns_servers }}"
+- name: Determine whether QSW-M2116P-2T2S management IP settings differ
+  ansible.builtin.set_fact:
+    qnap_qsw_m2116p_2t2s_management_ip_changed: |-
+      {{
+        qnap_qsw_m2116p_2t2s_management_configurations_current[0]
+        != qnap_qsw_m2116p_2t2s_management_configuration_desired
+      }}
+- name: Build complete desired QSW-M2116P-2T2S IP configuration
+  when: qnap_qsw_m2116p_2t2s_management_ip_changed
+  block:
+    - name: Initialize desired QSW-M2116P-2T2S IP configuration
+      ansible.builtin.set_fact:
+        qnap_qsw_m2116p_2t2s_ip_configurations_desired: []
+    - name: Preserve QSW-M2116P-2T2S IP configuration entries
+      ansible.builtin.set_fact:
+        qnap_qsw_m2116p_2t2s_ip_configurations_desired: |-
+          {{
+            qnap_qsw_m2116p_2t2s_ip_configurations_desired
+            + [
+              (item | combine(qnap_qsw_m2116p_2t2s_management_configuration_desired))
+              if (item.vlanId | string) == (qnap_qsw_m2116p_2t2s_ip_settings.vlan_id | string)
+              else item
+            ]
+          }}
+      loop: "{{ qnap_qsw_m2116p_2t2s_ip_configurations_current }}"
+      loop_control:
+        label: "VLAN {{ item.vlanId }}"
+- name: Report planned QSW-M2116P-2T2S management IP update
+  ansible.builtin.debug:
+    msg: >-
+      Would set management VLAN {{ qnap_qsw_m2116p_2t2s_ip_settings.vlan_id }} to {{ qnap_qsw_m2116p_2t2s_ip_settings.ip_address }}.
+  when:
+    - qnap_qsw_m2116p_2t2s_management_ip_changed
+    - ansible_check_mode
+  changed_when: true
+- name: Update QSW-M2116P-2T2S management IP settings
+  ansible.builtin.uri:
+    url: "http://{{ qnap_qsw_m2116p_2t2s_active_host }}/api/v3/ip/config"
+    method: PUT
+    body_format: json
+    body: "{{ qnap_qsw_m2116p_2t2s_ip_configurations_desired }}"
+    headers: "{{ qnap_qsw_m2116p_2t2s_session_headers }}"
+    return_content: true
+    status_code: 200
+    timeout: "{{ qnap_qsw_m2116p_2t2s_request_timeout_s }}"
+  register: qnap_qsw_m2116p_2t2s_management_ip_update
+  no_log: true
+  when:
+    - qnap_qsw_m2116p_2t2s_management_ip_changed
+    - not ansible_check_mode
+  # NOTE: Changing the address of an enabled interface can close the HTTP connection before a response arrives.
+  failed_when: false
+  changed_when: true
+- name: Wait for QSW-M2116P-2T2S management API at its desired address
+  ansible.builtin.wait_for:
+    host: "{{ qnap_qsw_m2116p_2t2s_ip_settings.ip_address }}"
+    port: 80
+    timeout: "{{ qnap_qsw_m2116p_2t2s_reconnect_timeout_s }}"
+  when:
+    - qnap_qsw_m2116p_2t2s_management_ip_changed
+    - not ansible_check_mode
+- name: Use desired QSW-M2116P-2T2S management address
+  ansible.builtin.set_fact:
+    qnap_qsw_m2116p_2t2s_active_host: "{{ qnap_qsw_m2116p_2t2s_ip_settings.ip_address }}"
+  when:
+    - qnap_qsw_m2116p_2t2s_management_ip_changed
+    - not ansible_check_mode
+- name: Update QSW-M2116P-2T2S session request headers
+  ansible.builtin.set_fact:
+    qnap_qsw_m2116p_2t2s_session_headers: |-
+      {{
+        qnap_qsw_m2116p_2t2s_session_headers
+        | combine(
+          {
+            'Origin': 'http://' + qnap_qsw_m2116p_2t2s_active_host,
+            'Referer': 'http://' + qnap_qsw_m2116p_2t2s_active_host + '/',
+          }
+        )
+      }}
+  no_log: true
+  when:
+    - qnap_qsw_m2116p_2t2s_management_ip_changed
+    - not ansible_check_mode
+- name: Verify QSW-M2116P-2T2S management IP settings
+  ansible.builtin.uri:
+    url: "http://{{ qnap_qsw_m2116p_2t2s_active_host }}/api/v3/ip/config"
+    method: GET
+    headers: "{{ qnap_qsw_m2116p_2t2s_session_headers }}"
+    return_content: true
+    status_code: 200
+    timeout: "{{ qnap_qsw_m2116p_2t2s_request_timeout_s }}"
+  register: qnap_qsw_m2116p_2t2s_ip_settings_verification
+  no_log: true
+  when: not ansible_check_mode
+  changed_when: false
+  failed_when: |-
+    (qnap_qsw_m2116p_2t2s_ip_settings_verification.content | from_json).error_code | default(-1) | int != 200 or (
+      (qnap_qsw_m2116p_2t2s_ip_settings_verification.content | from_json).result
+      | selectattr('vlanId', 'equalto', qnap_qsw_m2116p_2t2s_ip_settings.vlan_id | string)
+      | list
+      | first
+      | default({})
+    ) != qnap_qsw_m2116p_2t2s_management_configuration_desired

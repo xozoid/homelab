@@ -1,0 +1,9 @@
+---
+qnap_qsw_m2116p_2t2s_connection_defaults:
+  host: "{{ ip_management }}"
+  admin_username: admin
+  admin_password: ""
+  expected_hostname: "{{ inventory_hostname }}"
+  expected_model: QSW-M2116P-2T2S
+  request_timeout_s: 10
+  reconnect_timeout_s: 60

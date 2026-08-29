@@ -1,0 +1,11 @@
+---
+# Section files are loaded before validation. Keep these bindings as role
+# defaults so inventory and host variables retain their normal precedence.
+qnap_qsw_m2116p_2t2s_host: "{{ qnap_qsw_m2116p_2t2s_connection_defaults.host }}"
+qnap_qsw_m2116p_2t2s_admin_username: "{{ qnap_qsw_m2116p_2t2s_connection_defaults.admin_username }}"
+qnap_qsw_m2116p_2t2s_admin_password: "{{ qnap_qsw_m2116p_2t2s_connection_defaults.admin_password }}"
+qnap_qsw_m2116p_2t2s_expected_hostname: "{{ qnap_qsw_m2116p_2t2s_connection_defaults.expected_hostname }}"
+qnap_qsw_m2116p_2t2s_expected_model: "{{ qnap_qsw_m2116p_2t2s_connection_defaults.expected_model }}"
+qnap_qsw_m2116p_2t2s_request_timeout_s: "{{ qnap_qsw_m2116p_2t2s_connection_defaults.request_timeout_s }}"
+qnap_qsw_m2116p_2t2s_reconnect_timeout_s: "{{ qnap_qsw_m2116p_2t2s_connection_defaults.reconnect_timeout_s }}"
+qnap_qsw_m2116p_2t2s_ip_settings: "{{ qnap_qsw_m2116p_2t2s_ip_settings_defaults }}"

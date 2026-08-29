@@ -1,0 +1,33 @@
+---
+- name: Authenticate to QSW-M2116P-2T2S
+  ansible.builtin.uri:
+    url: "http://{{ qnap_qsw_m2116p_2t2s_active_host }}/api/v3/users/login"
+    method: POST
+    body_format: json
+    body:
+      username: "{{ qnap_qsw_m2116p_2t2s_admin_username }}"
+      password: "{{ qnap_qsw_m2116p_2t2s_admin_password | b64encode }}"
+      rememberme: false
+    headers:
+      Accept: application/json
+      Origin: "http://{{ qnap_qsw_m2116p_2t2s_active_host }}"
+      Referer: "http://{{ qnap_qsw_m2116p_2t2s_active_host }}/"
+    return_content: true
+    status_code: 200
+    timeout: "{{ qnap_qsw_m2116p_2t2s_request_timeout_s }}"
+  register: qnap_qsw_m2116p_2t2s_authentication
+  no_log: true
+  check_mode: false
+  changed_when: false
+  failed_when: >-
+    (qnap_qsw_m2116p_2t2s_authentication.content | from_json).error_code | default(-1) | int != 200 or (qnap_qsw_m2116p_2t2s_authentication.content | from_json).result.AccessToken | default('') | length == 0
+- name: Set QSW-M2116P-2T2S session headers
+  ansible.builtin.set_fact:
+    qnap_qsw_m2116p_2t2s_session_headers:
+      Accept: application/json
+      Authorization: >-
+        Bearer {{ (qnap_qsw_m2116p_2t2s_authentication.content | from_json).result.AccessToken }}
+      Content-Type: application/json
+      Origin: "http://{{ qnap_qsw_m2116p_2t2s_active_host }}"
+      Referer: "http://{{ qnap_qsw_m2116p_2t2s_active_host }}/"
+  no_log: true

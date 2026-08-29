@@ -2,5 +2,8 @@
 .venv*
 .env*
 
+prompt.md
+
 # Secrets
 .vault_pass
+*.har

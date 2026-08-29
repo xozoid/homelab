@@ -1,0 +1,413 @@
+---
+- name: Validate configured QSW-M2116P-2T2S port VLANs
+  ansible.builtin.assert:
+    that:
+      - item.value.untagged | default('') is string
+      - item.value.untagged | default('') | length == 0 or item.value.untagged in qnap_qsw_m2116p_2t2s_vlan_ids
+      - item.value.tagged | default([]) is sequence
+      - item.value.tagged | default([]) is not string
+      - item.value.tagged | default([]) | difference(qnap_qsw_m2116p_2t2s_vlan_ids.keys()) | length == 0
+      - item.value.untagged | default('') not in item.value.tagged | default([])
+    fail_msg: "Port {{ item.key }} has an invalid or conflicting VLAN assignment."
+  loop: "{{ qnap_qsw_m2116p_2t2s_ports | dict2items }}"
+  loop_control:
+    label: "Port {{ item.key }}"
+- name: Initialize desired QSW-M2116P-2T2S VLAN memberships
+  ansible.builtin.set_fact:
+    qnap_qsw_m2116p_2t2s_vlan_memberships_desired: []
+    qnap_qsw_m2116p_2t2s_physical_port_ids: |-
+      {{ range(1, qnap_qsw_m2116p_2t2s_physical_port_count + 1) | map('string') | list }}
+    qnap_qsw_m2116p_2t2s_vlan_ids_desired: |-
+      {{
+        (
+          [qnap_qsw_m2116p_2t2s_untagged_vlan_trap_id]
+          + qnap_qsw_m2116p_2t2s_vlan_ids.values() | list
+        )
+        | map('string')
+        | unique
+        | list
+      }}
+- name: Initialize desired QSW-M2116P-2T2S VLAN names
+  ansible.builtin.set_fact:
+    qnap_qsw_m2116p_2t2s_vlan_names_desired:
+      - key: "{{ qnap_qsw_m2116p_2t2s_untagged_vlan_trap_id | string }}"
+        name: "{{ qnap_qsw_m2116p_2t2s_untagged_vlan_trap_name }}"
+- name: Build desired QSW-M2116P-2T2S VLAN names
+  ansible.builtin.set_fact:
+    qnap_qsw_m2116p_2t2s_vlan_names_desired: |-
+      {{
+        qnap_qsw_m2116p_2t2s_vlan_names_desired
+        + [{'key': item.value | string, 'name': item.key}]
+      }}
+  loop: "{{ qnap_qsw_m2116p_2t2s_vlan_ids | dict2items }}"
+  loop_control:
+    label: "VLAN {{ item.value }} {{ item.key }}"
+- name: Build desired QSW-M2116P-2T2S untagged VLAN memberships
+  ansible.builtin.set_fact:
+    qnap_qsw_m2116p_2t2s_vlan_memberships_desired: |-
+      {{
+        qnap_qsw_m2116p_2t2s_vlan_memberships_desired
+        + [
+          {
+            'key': qnap_qsw_m2116p_2t2s_untagged_vlan_id_desired | string,
+            'val': {'Port': item | string, 'Tagged': false},
+          }
+        ]
+      }}
+  vars:
+    qnap_qsw_m2116p_2t2s_untagged_vlan_name_desired: |-
+      {{ qnap_qsw_m2116p_2t2s_ports.get(item, {}).untagged | default('') }}
+    qnap_qsw_m2116p_2t2s_untagged_vlan_id_desired: |-
+      {{
+        qnap_qsw_m2116p_2t2s_vlan_ids[qnap_qsw_m2116p_2t2s_untagged_vlan_name_desired]
+        if qnap_qsw_m2116p_2t2s_untagged_vlan_name_desired | length > 0
+        else qnap_qsw_m2116p_2t2s_untagged_vlan_trap_id
+      }}
+  loop: "{{ range(1, qnap_qsw_m2116p_2t2s_physical_port_count + 1) | list }}"
+  loop_control:
+    label: "Port {{ item }}"
+- name: Build desired QSW-M2116P-2T2S tagged VLAN memberships
+  ansible.builtin.set_fact:
+    qnap_qsw_m2116p_2t2s_vlan_memberships_desired: |-
+      {{
+        qnap_qsw_m2116p_2t2s_vlan_memberships_desired
+        + [
+          {
+            'key': qnap_qsw_m2116p_2t2s_vlan_ids[item.1] | string,
+            'val': {'Port': item.0.key | string, 'Tagged': true},
+          }
+        ]
+      }}
+  loop: "{{ qnap_qsw_m2116p_2t2s_ports | dict2items | subelements('value.tagged', skip_missing=True) }}"
+  loop_control:
+    label: "Port {{ item.0.key }} VLAN {{ item.1 }}"
+- name: Read QSW-M2116P-2T2S VLANs
+  ansible.builtin.uri:
+    url: "http://{{ qnap_qsw_m2116p_2t2s_active_host }}/api/v3/vlan"
+    method: GET
+    headers: "{{ qnap_qsw_m2116p_2t2s_session_headers }}"
+    return_content: true
+    status_code: 200
+    timeout: "{{ qnap_qsw_m2116p_2t2s_request_timeout_s }}"
+  register: qnap_qsw_m2116p_2t2s_vlans_response
+  no_log: true
+  check_mode: false
+  changed_when: false
+  failed_when: |-
+    (qnap_qsw_m2116p_2t2s_vlans_response.content | from_json).error_code | default(-1) | int != 200
+- name: Read QSW-M2116P-2T2S VLAN names
+  ansible.builtin.uri:
+    url: "http://{{ qnap_qsw_m2116p_2t2s_active_host }}/api/v3/vlan/name"
+    method: GET
+    headers: "{{ qnap_qsw_m2116p_2t2s_session_headers }}"
+    return_content: true
+    status_code: 200
+    timeout: "{{ qnap_qsw_m2116p_2t2s_request_timeout_s }}"
+  register: qnap_qsw_m2116p_2t2s_vlan_names_response
+  no_log: true
+  check_mode: false
+  changed_when: false
+  failed_when: |-
+    (qnap_qsw_m2116p_2t2s_vlan_names_response.content | from_json).error_code | default(-1) | int != 200
+- name: Extract current QSW-M2116P-2T2S VLANs and names
+  ansible.builtin.set_fact:
+    qnap_qsw_m2116p_2t2s_vlans_current: |-
+      {{ (qnap_qsw_m2116p_2t2s_vlans_response.content | from_json).result }}
+    qnap_qsw_m2116p_2t2s_vlan_names_current: |-
+      {{ (qnap_qsw_m2116p_2t2s_vlan_names_response.content | from_json).result }}
+- name: Initialize desired QSW-M2116P-2T2S VLAN changes
+  ansible.builtin.set_fact:
+    qnap_qsw_m2116p_2t2s_vlan_creates: []
+    qnap_qsw_m2116p_2t2s_vlan_updates: []
+    qnap_qsw_m2116p_2t2s_vlan_renames: []
+    qnap_qsw_m2116p_2t2s_vlan_deletes: []
+    qnap_qsw_m2116p_2t2s_vlan_ids_current: |-
+      {{ qnap_qsw_m2116p_2t2s_vlans_current | map(attribute='key') | list }}
+- name: Build desired QSW-M2116P-2T2S VLAN creates
+  ansible.builtin.set_fact:
+    qnap_qsw_m2116p_2t2s_vlan_creates: |-
+      {{
+        qnap_qsw_m2116p_2t2s_vlan_creates
+        + [
+          {
+            'action': 'Create',
+            'method': 'POST',
+            'vlan_id': item,
+            'body': {
+              'data': [
+                {
+                  'key': item,
+                  'val': qnap_qsw_m2116p_2t2s_vlan_memberships_desired_for_vlan,
+                }
+              ],
+            },
+          }
+        ]
+      }}
+  vars:
+    qnap_qsw_m2116p_2t2s_vlan_memberships_desired_for_vlan: |-
+      {{
+        qnap_qsw_m2116p_2t2s_vlan_memberships_desired
+        | selectattr('key', 'equalto', item)
+        | map(attribute='val')
+        | list
+      }}
+  loop: "{{ qnap_qsw_m2116p_2t2s_vlan_ids_desired | difference(qnap_qsw_m2116p_2t2s_vlan_ids_current) }}"
+  loop_control:
+    label: "VLAN {{ item }}"
+- name: Build desired QSW-M2116P-2T2S VLAN updates
+  ansible.builtin.set_fact:
+    qnap_qsw_m2116p_2t2s_vlan_updates: |-
+      {{
+        qnap_qsw_m2116p_2t2s_vlan_updates
+        + [
+          {
+            'action': 'Update',
+            'method': 'PUT',
+            'vlan_id': item.key,
+            'body': {
+              'data': [
+                {
+                  'key': item.key,
+                  'val': qnap_qsw_m2116p_2t2s_vlan_memberships_desired_for_vlan
+                  + qnap_qsw_m2116p_2t2s_virtual_memberships_current,
+                }
+              ],
+            },
+          }
+        ]
+      }}
+  vars:
+    qnap_qsw_m2116p_2t2s_vlan_memberships_desired_for_vlan: |-
+      {{
+        qnap_qsw_m2116p_2t2s_vlan_memberships_desired
+        | selectattr('key', 'equalto', item.key)
+        | map(attribute='val')
+        | list
+      }}
+    qnap_qsw_m2116p_2t2s_physical_memberships_current: |-
+      {{ item.val | selectattr('Port', 'in', qnap_qsw_m2116p_2t2s_physical_port_ids) | list }}
+    qnap_qsw_m2116p_2t2s_virtual_memberships_current: |-
+      {{ item.val | rejectattr('Port', 'in', qnap_qsw_m2116p_2t2s_physical_port_ids) | list }}
+  loop: "{{ qnap_qsw_m2116p_2t2s_vlans_current }}"
+  loop_control:
+    label: "VLAN {{ item.key }}"
+  when:
+    - item.key in qnap_qsw_m2116p_2t2s_vlan_ids_desired
+    - |-
+      qnap_qsw_m2116p_2t2s_vlan_memberships_desired_for_vlan
+      | difference(qnap_qsw_m2116p_2t2s_physical_memberships_current)
+      | length > 0 or qnap_qsw_m2116p_2t2s_physical_memberships_current
+      | difference(qnap_qsw_m2116p_2t2s_vlan_memberships_desired_for_vlan)
+      | length > 0
+- name: Build desired QSW-M2116P-2T2S VLAN deletes
+  ansible.builtin.set_fact:
+    qnap_qsw_m2116p_2t2s_vlan_deletes: |-
+      {{
+        qnap_qsw_m2116p_2t2s_vlan_deletes
+        + [
+          {
+            'action': 'Delete',
+            'method': 'DELETE',
+            'vlan_id': item,
+            'body': {'idx': [item]},
+          }
+        ]
+      }}
+  loop: "{{ qnap_qsw_m2116p_2t2s_vlan_ids_current | difference(qnap_qsw_m2116p_2t2s_vlan_ids_desired) }}"
+  loop_control:
+    label: "VLAN {{ item }}"
+- name: Build desired QSW-M2116P-2T2S VLAN renames
+  ansible.builtin.set_fact:
+    qnap_qsw_m2116p_2t2s_vlan_renames: |-
+      {{
+        qnap_qsw_m2116p_2t2s_vlan_renames
+        + [
+          {
+            'action': 'Rename',
+            'method': 'PUT',
+            'path': 'vlan/name',
+            'vlan_id': item.key,
+            'body': {'data': [item]},
+          }
+        ]
+      }}
+  vars:
+    qnap_qsw_m2116p_2t2s_vlan_name_current: |-
+      {{
+        qnap_qsw_m2116p_2t2s_vlan_names_current
+        | selectattr('key', 'equalto', item.key)
+        | map(attribute='name')
+        | first
+        | default('')
+      }}
+  loop: "{{ qnap_qsw_m2116p_2t2s_vlan_names_desired }}"
+  loop_control:
+    label: "VLAN {{ item.key }} {{ item.name }}"
+  when: qnap_qsw_m2116p_2t2s_vlan_name_current != item.name
+- name: Put trap VLAN first in QSW-M2116P-2T2S VLAN change order
+  ansible.builtin.set_fact:
+    qnap_qsw_m2116p_2t2s_vlan_upserts: |-
+      {{
+        (
+          qnap_qsw_m2116p_2t2s_vlan_creates
+          | selectattr('vlan_id', 'equalto', qnap_qsw_m2116p_2t2s_untagged_vlan_trap_id | string)
+          | list
+        )
+        + (
+          qnap_qsw_m2116p_2t2s_vlan_creates
+          | rejectattr('vlan_id', 'equalto', qnap_qsw_m2116p_2t2s_untagged_vlan_trap_id | string)
+          | list
+        )
+        + (
+          qnap_qsw_m2116p_2t2s_vlan_updates
+          | selectattr('vlan_id', 'equalto', qnap_qsw_m2116p_2t2s_untagged_vlan_trap_id | string)
+          | list
+        )
+        + (
+          qnap_qsw_m2116p_2t2s_vlan_updates
+          | rejectattr('vlan_id', 'equalto', qnap_qsw_m2116p_2t2s_untagged_vlan_trap_id | string)
+          | list
+        )
+      }}
+- name: Initialize failed QSW-M2116P-2T2S VLAN changes
+  ansible.builtin.set_fact:
+    qnap_qsw_m2116p_2t2s_vlan_change_failures: []
+- name: Apply QSW-M2116P-2T2S VLAN creates and updates
+  ansible.builtin.include_tasks: vlan_update.yaml
+  loop: "{{ qnap_qsw_m2116p_2t2s_vlan_upserts }}"
+  loop_control:
+    loop_var: qnap_qsw_m2116p_2t2s_vlan_change_requested
+    label: |-
+      {{
+        qnap_qsw_m2116p_2t2s_vlan_change_requested.action
+        + ' VLAN '
+        + qnap_qsw_m2116p_2t2s_vlan_change_requested.vlan_id
+      }}
+  when: not ansible_check_mode
+- name: Validate QSW-M2116P-2T2S VLAN creates and updates
+  ansible.builtin.assert:
+    that:
+      - qnap_qsw_m2116p_2t2s_vlan_change_failures | length == 0
+    fail_msg: |-
+      QSW-M2116P-2T2S VLAN changes failed: {{ qnap_qsw_m2116p_2t2s_vlan_change_failures | to_json }}
+  when: not ansible_check_mode
+- name: Rename QSW-M2116P-2T2S VLANs
+  ansible.builtin.include_tasks: vlan_update.yaml
+  loop: "{{ qnap_qsw_m2116p_2t2s_vlan_renames }}"
+  loop_control:
+    loop_var: qnap_qsw_m2116p_2t2s_vlan_change_requested
+    label: |-
+      {{
+        'Rename VLAN '
+        + qnap_qsw_m2116p_2t2s_vlan_change_requested.vlan_id
+        + ' to '
+        + qnap_qsw_m2116p_2t2s_vlan_change_requested.body.data[0].name
+      }}
+  when: not ansible_check_mode
+- name: Validate QSW-M2116P-2T2S VLAN renames
+  ansible.builtin.assert:
+    that:
+      - qnap_qsw_m2116p_2t2s_vlan_change_failures | length == 0
+    fail_msg: |-
+      QSW-M2116P-2T2S VLAN changes failed: {{ qnap_qsw_m2116p_2t2s_vlan_change_failures | to_json }}
+  when: not ansible_check_mode
+- name: Delete stale QSW-M2116P-2T2S VLANs
+  ansible.builtin.include_tasks: vlan_update.yaml
+  loop: "{{ qnap_qsw_m2116p_2t2s_vlan_deletes }}"
+  loop_control:
+    loop_var: qnap_qsw_m2116p_2t2s_vlan_change_requested
+    label: "Delete VLAN {{ qnap_qsw_m2116p_2t2s_vlan_change_requested.vlan_id }}"
+  when: not ansible_check_mode
+- name: Validate QSW-M2116P-2T2S VLAN deletes
+  ansible.builtin.assert:
+    that:
+      - qnap_qsw_m2116p_2t2s_vlan_change_failures | length == 0
+    fail_msg: |-
+      QSW-M2116P-2T2S VLAN changes failed: {{ qnap_qsw_m2116p_2t2s_vlan_change_failures | to_json }}
+  when: not ansible_check_mode
+- name: Read updated QSW-M2116P-2T2S VLANs
+  ansible.builtin.uri:
+    url: "http://{{ qnap_qsw_m2116p_2t2s_active_host }}/api/v3/vlan"
+    method: GET
+    headers: "{{ qnap_qsw_m2116p_2t2s_session_headers }}"
+    return_content: true
+    status_code: 200
+    timeout: "{{ qnap_qsw_m2116p_2t2s_request_timeout_s }}"
+  register: qnap_qsw_m2116p_2t2s_vlans_verification
+  no_log: true
+  check_mode: false
+  when: not ansible_check_mode
+  changed_when: false
+  failed_when: |-
+    (qnap_qsw_m2116p_2t2s_vlans_verification.content | from_json).error_code | default(-1) | int != 200
+- name: Read updated QSW-M2116P-2T2S VLAN names
+  ansible.builtin.uri:
+    url: "http://{{ qnap_qsw_m2116p_2t2s_active_host }}/api/v3/vlan/name"
+    method: GET
+    headers: "{{ qnap_qsw_m2116p_2t2s_session_headers }}"
+    return_content: true
+    status_code: 200
+    timeout: "{{ qnap_qsw_m2116p_2t2s_request_timeout_s }}"
+  register: qnap_qsw_m2116p_2t2s_vlan_names_verification
+  no_log: true
+  check_mode: false
+  when: not ansible_check_mode
+  changed_when: false
+  failed_when: |-
+    (qnap_qsw_m2116p_2t2s_vlan_names_verification.content | from_json).error_code | default(-1) | int != 200
+- name: Verify QSW-M2116P-2T2S VLAN set
+  ansible.builtin.assert:
+    that:
+      - qnap_qsw_m2116p_2t2s_vlan_ids_desired | difference(qnap_qsw_m2116p_2t2s_vlan_ids_updated) | length == 0
+      - qnap_qsw_m2116p_2t2s_vlan_ids_updated | difference(qnap_qsw_m2116p_2t2s_vlan_ids_desired) | length == 0
+    fail_msg: The switch did not retain the desired VLAN set.
+  vars:
+    qnap_qsw_m2116p_2t2s_vlan_ids_updated: |-
+      {{
+        (qnap_qsw_m2116p_2t2s_vlans_verification.content | from_json).result
+        | map(attribute='key')
+        | list
+      }}
+  when: not ansible_check_mode
+- name: Verify QSW-M2116P-2T2S VLAN names
+  ansible.builtin.assert:
+    that:
+      - qnap_qsw_m2116p_2t2s_vlan_names_desired | difference(qnap_qsw_m2116p_2t2s_vlan_names_updated) | length == 0
+      - qnap_qsw_m2116p_2t2s_vlan_names_updated | difference(qnap_qsw_m2116p_2t2s_vlan_names_desired) | length == 0
+    fail_msg: The switch did not retain the desired VLAN names.
+  vars:
+    qnap_qsw_m2116p_2t2s_vlan_names_updated: |-
+      {{ (qnap_qsw_m2116p_2t2s_vlan_names_verification.content | from_json).result }}
+  when: not ansible_check_mode
+- name: Verify QSW-M2116P-2T2S VLAN memberships
+  ansible.builtin.assert:
+    that:
+      - |-
+        qnap_qsw_m2116p_2t2s_vlan_memberships_desired_for_vlan
+        | difference(qnap_qsw_m2116p_2t2s_physical_memberships_updated)
+        | length == 0
+      - |-
+        qnap_qsw_m2116p_2t2s_physical_memberships_updated
+        | difference(qnap_qsw_m2116p_2t2s_vlan_memberships_desired_for_vlan)
+        | length == 0
+    fail_msg: "VLAN {{ item.key }} did not retain its desired physical port memberships."
+  vars:
+    qnap_qsw_m2116p_2t2s_vlan_memberships_desired_for_vlan: |-
+      {{
+        qnap_qsw_m2116p_2t2s_vlan_memberships_desired
+        | selectattr('key', 'equalto', item.key)
+        | map(attribute='val')
+        | list
+      }}
+    qnap_qsw_m2116p_2t2s_physical_memberships_updated: |-
+      {{ item.val | selectattr('Port', 'in', qnap_qsw_m2116p_2t2s_physical_port_ids) | list }}
+  loop: |-
+    {{
+      []
+      if ansible_check_mode
+      else (qnap_qsw_m2116p_2t2s_vlans_verification.content | from_json).result
+    }}
+  loop_control:
+    label: "VLAN {{ item.key }}"
+  when: not ansible_check_mode

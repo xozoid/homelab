@@ -8,6 +8,7 @@
     - poe
     - ports
     - time
+    - vlans
 - name: Validate QSW-M2116P-2T2S role inputs
   ansible.builtin.assert:
     that:
@@ -27,8 +28,24 @@
       - qnap_qsw_m2116p_2t2s_time is mapping
       - qnap_qsw_m2116p_2t2s_time.timezone_name in qnap_qsw_m2116p_2t2s_timezone_location_indexes
       - qnap_qsw_m2116p_2t2s_time.ntp_server | length > 0
-    fail_msg: >-
-      Set the QSW-M2116P-2T2S password from an Ansible Vault variable and provide valid connection, management IP, port, PoE, and time settings.
+      - qnap_qsw_m2116p_2t2s_vlan_ids is mapping
+      - qnap_qsw_m2116p_2t2s_vlan_ids | length > 0
+      - qnap_qsw_m2116p_2t2s_untagged_vlan_trap_id | int >= 1
+      - qnap_qsw_m2116p_2t2s_untagged_vlan_trap_id | int <= 4094
+      - |-
+        (qnap_qsw_m2116p_2t2s_untagged_vlan_trap_id | int)
+        not in (
+          qnap_qsw_m2116p_2t2s_vlan_ids.values()
+          | map('int')
+          | list
+        )
+      - qnap_qsw_m2116p_2t2s_untagged_vlan_trap_name | length > 0
+    fail_msg: |-
+      {{
+        'Set the QSW-M2116P-2T2S password from an Ansible Vault variable'
+        + ' and provide valid connection, management IP, port, VLAN, PoE,'
+        + ' and time settings.'
+      }}
 - name: Read QSW-M2116P-2T2S identity
   ansible.builtin.uri:
     url: "http://{{ qnap_qsw_m2116p_2t2s_host }}/api/about"
@@ -57,6 +74,8 @@
       ansible.builtin.include_tasks: authenticate.yaml
     - name: Configure QSW-M2116P-2T2S ports
       ansible.builtin.include_tasks: ports.yaml
+    - name: Configure QSW-M2116P-2T2S VLANs
+      ansible.builtin.include_tasks: vlans.yaml
     - name: Configure QSW-M2116P-2T2S PoE
       ansible.builtin.include_tasks: poe.yaml
     - name: Configure QSW-M2116P-2T2S time

@@ -1,0 +1,163 @@
+---
+- name: Validate configured QSW-M2116P-2T2S PoE ports
+  ansible.builtin.assert:
+    that:
+      - |-
+        not (item.value.poe | default(false) | bool)
+        or item.key in qnap_qsw_m2116p_2t2s_poe_capabilities
+    fail_msg: "Port {{ item.key }} is configured for PoE but does not support it."
+  loop: "{{ qnap_qsw_m2116p_2t2s_ports | dict2items }}"
+  loop_control:
+    label: "Port {{ item.key }}"
+- name: Read QSW-M2116P-2T2S PoE interfaces
+  ansible.builtin.uri:
+    url: "http://{{ qnap_qsw_m2116p_2t2s_active_host }}/api/v3/poe/interface"
+    method: GET
+    headers: "{{ qnap_qsw_m2116p_2t2s_session_headers }}"
+    return_content: true
+    status_code: 200
+    timeout: "{{ qnap_qsw_m2116p_2t2s_request_timeout_s }}"
+  register: qnap_qsw_m2116p_2t2s_poe_response
+  no_log: true
+  check_mode: false
+  changed_when: false
+  failed_when: >-
+    (qnap_qsw_m2116p_2t2s_poe_response.content | from_json).error_code | default(-1) | int != 200
+- name: Initialize current QSW-M2116P-2T2S PoE interfaces
+  ansible.builtin.set_fact:
+    qnap_qsw_m2116p_2t2s_poe_interfaces_current: []
+- name: Extract current QSW-M2116P-2T2S PoE-capable interfaces
+  ansible.builtin.set_fact:
+    qnap_qsw_m2116p_2t2s_poe_interfaces_current: >-
+      {{ qnap_qsw_m2116p_2t2s_poe_interfaces_current + [item] }}
+  loop: "{{ (qnap_qsw_m2116p_2t2s_poe_response.content | from_json).result }}"
+  loop_control:
+    label: "Port {{ item.key }}"
+  when: item.key | int in qnap_qsw_m2116p_2t2s_poe_capabilities
+- name: Validate QSW-M2116P-2T2S PoE interfaces
+  ansible.builtin.assert:
+    that:
+      - qnap_qsw_m2116p_2t2s_poe_interfaces_current | length == qnap_qsw_m2116p_2t2s_poe_capabilities | length
+      - |-
+        qnap_qsw_m2116p_2t2s_poe_interfaces_current
+        | map(attribute='key')
+        | map('int')
+        | difference(qnap_qsw_m2116p_2t2s_poe_capabilities.keys() | list)
+        | length == 0
+      - |-
+        qnap_qsw_m2116p_2t2s_poe_capabilities.keys()
+        | list
+        | difference(
+          qnap_qsw_m2116p_2t2s_poe_interfaces_current
+          | map(attribute='key')
+          | map('int')
+          | list
+        )
+        | length == 0
+    fail_msg: >-
+      The switch did not return the expected set of PoE-capable interfaces; no PoE changes were made.
+- name: Initialize desired QSW-M2116P-2T2S PoE updates
+  ansible.builtin.set_fact:
+    qnap_qsw_m2116p_2t2s_poe_updates: []
+- name: Build desired QSW-M2116P-2T2S PoE updates
+  ansible.builtin.set_fact:
+    qnap_qsw_m2116p_2t2s_poe_updates: |-
+      {{
+        qnap_qsw_m2116p_2t2s_poe_updates
+        + [{'idx': item.key, 'data': qnap_qsw_m2116p_2t2s_poe_configuration_desired}]
+      }}
+  vars:
+    qnap_qsw_m2116p_2t2s_poe_enabled: >-
+      {{ qnap_qsw_m2116p_2t2s_ports.get(item.key | int, {}).poe | default(false) | bool }}
+    qnap_qsw_m2116p_2t2s_poe_capability: >-
+      {{ qnap_qsw_m2116p_2t2s_poe_capabilities[item.key | int] }}
+    qnap_qsw_m2116p_2t2s_poe_mode_desired: |-
+      {{
+        qnap_qsw_m2116p_2t2s_poe_capability.enabled_mode
+        if qnap_qsw_m2116p_2t2s_poe_enabled | bool
+        else 'disable'
+      }}
+    # NOTE: QSS requires rated power when disabling, but preserves current power when enabling.
+    qnap_qsw_m2116p_2t2s_poe_configuration_desired: |-
+      {{
+        {
+          'Mode': qnap_qsw_m2116p_2t2s_poe_mode_desired,
+          'Priority': item.val.Priority,
+          'MaxPower': (
+            item.val.MaxPower
+            if qnap_qsw_m2116p_2t2s_poe_enabled | bool
+            else qnap_qsw_m2116p_2t2s_poe_capability.max_power_w
+          ) | int,
+        }
+      }}
+  loop: "{{ qnap_qsw_m2116p_2t2s_poe_interfaces_current }}"
+  loop_control:
+    label: "Port {{ item.key }}"
+  when: item.val.Mode != qnap_qsw_m2116p_2t2s_poe_mode_desired
+- name: Report planned QSW-M2116P-2T2S PoE updates
+  ansible.builtin.debug:
+    msg: >-
+      Would update PoE on ports {{ qnap_qsw_m2116p_2t2s_poe_updates | map(attribute='idx') | join(', ') }}.
+  when:
+    - qnap_qsw_m2116p_2t2s_poe_updates | length > 0
+    - ansible_check_mode
+  changed_when: true
+- name: Initialize failed QSW-M2116P-2T2S PoE updates
+  ansible.builtin.set_fact:
+    qnap_qsw_m2116p_2t2s_poe_update_failures: []
+- name: Update QSW-M2116P-2T2S PoE interfaces
+  ansible.builtin.include_tasks: poe_interface_update.yaml
+  loop: "{{ qnap_qsw_m2116p_2t2s_poe_updates }}"
+  loop_control:
+    loop_var: qnap_qsw_m2116p_2t2s_poe_update_requested
+    label: "Port {{ qnap_qsw_m2116p_2t2s_poe_update_requested.idx }}"
+  when: not ansible_check_mode
+- name: Validate QSW-M2116P-2T2S PoE updates
+  ansible.builtin.assert:
+    that:
+      - qnap_qsw_m2116p_2t2s_poe_update_failures | default([]) | length == 0
+    fail_msg: >-
+      QSW-M2116P-2T2S PoE updates failed: {{ qnap_qsw_m2116p_2t2s_poe_update_failures | to_json }}
+  when: not ansible_check_mode
+- name: Read updated QSW-M2116P-2T2S PoE interfaces
+  ansible.builtin.uri:
+    url: "http://{{ qnap_qsw_m2116p_2t2s_active_host }}/api/v3/poe/interface"
+    method: GET
+    headers: "{{ qnap_qsw_m2116p_2t2s_session_headers }}"
+    return_content: true
+    status_code: 200
+    timeout: "{{ qnap_qsw_m2116p_2t2s_request_timeout_s }}"
+  register: qnap_qsw_m2116p_2t2s_poe_verification
+  no_log: true
+  check_mode: false
+  when: not ansible_check_mode
+  changed_when: false
+  failed_when: >-
+    (qnap_qsw_m2116p_2t2s_poe_verification.content | from_json).error_code | default(-1) | int != 200
+- name: Verify QSW-M2116P-2T2S PoE interface settings
+  ansible.builtin.assert:
+    that:
+      - item.val.Mode == qnap_qsw_m2116p_2t2s_poe_mode_desired
+    fail_msg: "Port {{ item.key }} did not retain its desired PoE settings."
+  vars:
+    qnap_qsw_m2116p_2t2s_poe_enabled: >-
+      {{ qnap_qsw_m2116p_2t2s_ports.get(item.key | int, {}).poe | default(false) | bool }}
+    qnap_qsw_m2116p_2t2s_poe_capability: >-
+      {{ qnap_qsw_m2116p_2t2s_poe_capabilities[item.key | int] }}
+    qnap_qsw_m2116p_2t2s_poe_mode_desired: |-
+      {{
+        qnap_qsw_m2116p_2t2s_poe_capability.enabled_mode
+        if qnap_qsw_m2116p_2t2s_poe_enabled | bool
+        else 'disable'
+      }}
+  loop: |-
+    {{
+      []
+      if ansible_check_mode
+      else (qnap_qsw_m2116p_2t2s_poe_verification.content | from_json).result
+    }}
+  loop_control:
+    label: "Port {{ item.key }}"
+  when:
+    - not ansible_check_mode
+    - item.key | int in qnap_qsw_m2116p_2t2s_poe_capabilities

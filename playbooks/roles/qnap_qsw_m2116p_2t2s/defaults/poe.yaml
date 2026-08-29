@@ -1,0 +1,24 @@
+---
+qnap_qsw_m2116p_2t2s_poe_capabilities_defaults:
+  1: &poe_plus
+    enabled_mode: poePlusDot3at
+    max_power_w: 30
+  2: *poe_plus
+  3: *poe_plus
+  4: *poe_plus
+  5: *poe_plus
+  6: *poe_plus
+  7: *poe_plus
+  8: *poe_plus
+  9: *poe_plus
+  10: *poe_plus
+  11: *poe_plus
+  12: *poe_plus
+  13: *poe_plus
+  14: *poe_plus
+  15: *poe_plus
+  16: *poe_plus
+  19: &poe_plus_plus
+    enabled_mode: poePlusDot3bt
+    max_power_w: 90
+  20: *poe_plus_plus

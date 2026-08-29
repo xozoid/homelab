@@ -4,6 +4,7 @@ qnap_qsw_m2116p_2t2s_admin_password: "{{ vault_password }}"
 qnap_qsw_m2116p_2t2s_ports:
   1:
     description: morbo
+    poe: true
   3:
     description: hypnotoad
   4:

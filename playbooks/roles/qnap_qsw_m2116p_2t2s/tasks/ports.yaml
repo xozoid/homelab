@@ -151,9 +151,13 @@
       {{ qnap_qsw_m2116p_2t2s_ports.get(item.key | int, {}).description | default('') }}
   loop: |-
     {{
-      (qnap_qsw_m2116p_2t2s_ports_verification.content | from_json).result
-      | selectattr('val.Type', 'equalto', 'ethernetCsmacd')
-      | list
+      []
+      if ansible_check_mode
+      else (
+        (qnap_qsw_m2116p_2t2s_ports_verification.content | from_json).result
+        | selectattr('val.Type', 'equalto', 'ethernetCsmacd')
+        | list
+      )
     }}
   loop_control:
     label: "Port {{ item.key }}"

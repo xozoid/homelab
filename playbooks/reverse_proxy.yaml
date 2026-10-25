@@ -5,8 +5,12 @@
     - role: reverse_proxy
       become: true
       reverse_proxy_network: "{{ docker_services_network }}"
-      reverse_proxy_ip: "{{ ip_reverse_proxy }}"
-      reverse_proxy_extra_networks:
+      # Give Nginx the ingress address directly.  It is the first attached
+      # network so external upstreams use VLAN 401 and its gateway by default.
+      reverse_proxy_networks:
+        - name: "{{ 'vlan-' + vlan_networking.name }}"
+          ipv4_address: "{{ ip_reverse_proxy }}"
+        - name: "{{ docker_services_network }}"
         - name: "{{ docker_uptime_network }}"
           # NOTE: These aliases keep Kuma's HTTPS hostname and SNI intact while
           # sending GUI checks directly over the private Docker bridge.
@@ -19,10 +23,11 @@
             - "grafana.{{ domain_lan }}"
             - "nummus.{{ domain_lan }}"
             - "home.{{ domain_lan }}"
-        - name: "{{ 'vlan-' + vlan_networking.name }}"
-          ipv4_address: "{{ ip_reverse_proxy_dns }}"
-        - name: "{{ 'vlan-' + vlan_automation.name }}"
-          ipv4_address: "{{ ip_reverse_proxy_automation }}"
+      reverse_proxy_default_gateway_network: "{{ 'vlan-' + vlan_networking.name }}"
+      reverse_proxy_default_gateway_ipv4_address: "{{ ip_reverse_proxy }}"
+      # Nginx owns the ingress address on its ipvlan interface, so Docker must
+      # not publish host ports for it.
+      reverse_proxy_published_ports: []
       reverse_proxy_exporter_network: "{{ docker_services_network }}"
       reverse_proxy_wildcard: "{{ domain_lan }}"
       reverse_proxy_conf: private

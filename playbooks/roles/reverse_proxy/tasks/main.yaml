@@ -23,15 +23,13 @@
     image_name_mismatch: recreate
     log_driver: "{{ docker_log_driver }}"
     log_options: "{{ docker_log_options }}"
-    networks: "{{ [{'name': reverse_proxy_network}] + reverse_proxy_extra_networks }}"
+    networks: "{{ reverse_proxy_networks }}"
     comparisons:
       networks: strict
     dns_servers:
       - "{{ ip_dns_0 }}"
       - "{{ ip_dns_1 }}"
-    published_ports:
-      - "{{ reverse_proxy_ip }}:80:80/tcp"
-      - "{{ reverse_proxy_ip }}:443:443/tcp"
+    published_ports: "{{ reverse_proxy_published_ports }}"
     restart_policy: unless-stopped
     state: started
     volumes:
@@ -40,3 +38,42 @@
       - "/var/log/nginx/:/var/log/nginx/"
   vars:
     conf: "/etc/nginx/{{ reverse_proxy_conf }}.conf"
+- name: Read reverse proxy network settings
+  community.docker.docker_container_info:
+    name: "{{ reverse_proxy_name }}"
+  register: reverse_proxy_container_info
+  when: reverse_proxy_default_gateway_network | length > 0
+- name: Disconnect reverse proxy from lower-priority gateway network
+  ansible.builtin.command:
+    argv:
+      - docker
+      - network
+      - disconnect
+      - "{{ reverse_proxy_default_gateway_network }}"
+      - "{{ reverse_proxy_name }}"
+  when:
+    - reverse_proxy_default_gateway_network | length > 0
+    - |-
+      reverse_proxy_container_info.container.NetworkSettings.Networks[
+        reverse_proxy_default_gateway_network
+      ].GwPriority | int != reverse_proxy_default_gateway_priority | int
+  changed_when: true
+- name: Reconnect reverse proxy with preferred gateway
+  ansible.builtin.command:
+    argv:
+      - docker
+      - network
+      - connect
+      - --ip
+      - "{{ reverse_proxy_default_gateway_ipv4_address }}"
+      - --gw-priority
+      - "{{ reverse_proxy_default_gateway_priority | string }}"
+      - "{{ reverse_proxy_default_gateway_network }}"
+      - "{{ reverse_proxy_name }}"
+  when:
+    - reverse_proxy_default_gateway_network | length > 0
+    - |-
+      reverse_proxy_container_info.container.NetworkSettings.Networks[
+        reverse_proxy_default_gateway_network
+      ].GwPriority | int != reverse_proxy_default_gateway_priority | int
+  changed_when: true

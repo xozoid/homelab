@@ -64,6 +64,8 @@
     image: prom/alertmanager:v0.27.0
     image_name_mismatch: recreate
     name: alertmanager
+    log_driver: "{{ docker_log_driver }}"
+    log_options: "{{ docker_log_options }}"
     command: |-
       --config.file=/etc/prometheus/alertmanager.yaml
       --storage.path=/alertmanager
@@ -85,6 +87,8 @@
     image: prom/prometheus:v{{ prometheus_version }}
     image_name_mismatch: recreate
     name: prometheus
+    log_driver: "{{ docker_log_driver }}"
+    log_options: "{{ docker_log_options }}"
     command: |-
       --config.file=/etc/prometheus/prometheus.yaml
       --storage.tsdb.path=/prometheus --storage.tsdb.retention.time=1y
@@ -112,6 +116,8 @@
     image: grafana/grafana-oss:9.5.0
     image_name_mismatch: recreate
     name: grafana
+    log_driver: "{{ docker_log_driver }}"
+    log_options: "{{ docker_log_options }}"
     command: >-
       --config=/etc/grafana/grafana.ini
     networks:

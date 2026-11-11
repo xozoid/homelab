@@ -21,6 +21,8 @@
     name: pihole
     image: "{{ pihole_image }}"
     image_name_mismatch: recreate
+    log_driver: "{{ docker_log_driver }}"
+    log_options: "{{ docker_log_options }}"
     hostname: "{{ pihole_hostname }}"
     networks:
       - name: "{{ pihole_network }}"

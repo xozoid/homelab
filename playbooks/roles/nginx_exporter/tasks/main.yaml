@@ -16,6 +16,8 @@
     name: "nginx-exporter"
     image: quay.io/martinhelmich/prometheus-nginxlog-exporter:v1.11.0
     image_name_mismatch: recreate
+    log_driver: "{{ docker_log_driver }}"
+    log_options: "{{ docker_log_options }}"
     command: >-
       -config-file /etc/prometheus-nginxlog-exporter.yaml
     networks:

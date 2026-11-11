@@ -8,6 +8,8 @@
         name: pihole-exporter0
         image: ekofr/pihole-exporter:v0.4.0
         image_name_mismatch: recreate
+        log_driver: "{{ docker_log_driver }}"
+        log_options: "{{ docker_log_options }}"
         networks:
           - name: "{{ 'vlan-' + vlan_management.name }}"
             ipv4_address: "{{ ip_dns_exporter_0 }}"
@@ -27,6 +29,8 @@
         name: pihole-exporter1
         image: ekofr/pihole-exporter:v0.4.0
         image_name_mismatch: recreate
+        log_driver: "{{ docker_log_driver }}"
+        log_options: "{{ docker_log_options }}"
         networks:
           - name: "{{ 'vlan-' + vlan_management.name }}"
             ipv4_address: "{{ ip_dns_exporter_1 }}"
@@ -51,6 +55,8 @@
         name: ntp-exporter
         image: quay.io/superq/chrony-exporter:v0.10.1
         image_name_mismatch: recreate
+        log_driver: "{{ docker_log_driver }}"
+        log_options: "{{ docker_log_options }}"
         command: --chrony.address="{{ ip_ntp }}:323" --collector.tracking --no-collector.sources
         networks:
           - name: services
@@ -64,6 +70,8 @@
         name: pve-exporter
         image: prompve/prometheus-pve-exporter:3.4.3
         image_name_mismatch: recreate
+        log_driver: "{{ docker_log_driver }}"
+        log_options: "{{ docker_log_options }}"
         networks:
           - name: services
         comparisons:
@@ -94,6 +102,8 @@
         name: cadvisor
         image: gcr.io/cadvisor/cadvisor:v0.49.1
         image_name_mismatch: recreate
+        log_driver: "{{ docker_log_driver }}"
+        log_options: "{{ docker_log_options }}"
         networks:
           - name: services
         comparisons:

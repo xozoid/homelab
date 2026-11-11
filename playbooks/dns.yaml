@@ -36,6 +36,8 @@
       community.docker.docker_container:
         name: ddns
         image: oznu/cloudflare-ddns:latest
+        log_driver: "{{ docker_log_driver }}"
+        log_options: "{{ docker_log_options }}"
         networks:
           - name: "{{ docker_services_network }}"
         comparisons:

@@ -26,6 +26,8 @@
     name: uptime-kuma
     image: louislam/uptime-kuma:1.23.13
     image_name_mismatch: recreate
+    log_driver: "{{ docker_log_driver }}"
+    log_options: "{{ docker_log_options }}"
     networks: "{{ [{'name': uptime_network} | combine({'ipv4_address': uptime_ipv4_address} if uptime_ipv4_address else {})] + uptime_extra_networks }}"
     comparisons:
       networks: strict

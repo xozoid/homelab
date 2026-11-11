@@ -21,6 +21,8 @@
     name: "{{ reverse_proxy_name }}"
     image: nginx:1.27.0
     image_name_mismatch: recreate
+    log_driver: "{{ docker_log_driver }}"
+    log_options: "{{ docker_log_options }}"
     networks: "{{ [{'name': reverse_proxy_network}] + reverse_proxy_extra_networks }}"
     comparisons:
       networks: strict

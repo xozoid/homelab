@@ -32,6 +32,8 @@
     name: nummus
     image: wattsup314/nummus-financial:latest
     image_name_mismatch: recreate
+    log_driver: "{{ docker_log_driver }}"
+    log_options: "{{ docker_log_options }}"
     pull: always
     networks:
       - name: "{{ nummus_network }}"

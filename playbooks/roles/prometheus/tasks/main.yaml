@@ -94,8 +94,7 @@
       --storage.tsdb.path=/prometheus --storage.tsdb.retention.time=1y
       --web.console.libraries=/usr/share/prometheus/console_libraries
       --web.console.templates=/usr/share/prometheus/consoles
-    networks:
-      - name: "{{ prometheus_network }}"
+    networks: "{{ [{'name': prometheus_network}] + ([{'name': prometheus_management_network, 'ipv4_address': prometheus_management_ip}] if prometheus_management_network else []) }}"
     comparisons:
       networks: strict
     published_ports:
@@ -111,6 +110,19 @@
       - /etc/prometheus/targets:/etc/prometheus/targets:ro
       - prometheus-data:/prometheus
   register: prometheus_container
+- name: Set Prometheus management network as default gateway
+  when:
+    - prometheus_management_network | length > 0
+    - prometheus_container.container.NetworkSettings.Networks[prometheus_management_network].GwPriority | int != 1
+  block:
+    - name: Disconnect Prometheus management network
+      ansible.builtin.command:
+        argv: [docker, network, disconnect, "{{ prometheus_management_network }}", prometheus]
+      changed_when: true
+    - name: Reconnect Prometheus management network with preferred gateway
+      ansible.builtin.command:
+        argv: [docker, network, connect, --ip, "{{ prometheus_management_ip }}", --gw-priority, "1", "{{ prometheus_management_network }}", prometheus]
+      changed_when: true
 - name: Create grafana docker
   community.docker.docker_container:
     image: grafana/grafana-oss:9.5.0

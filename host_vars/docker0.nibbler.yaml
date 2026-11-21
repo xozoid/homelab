@@ -12,37 +12,6 @@ runs_reverse_proxy: true
 vlans:
   - name: management
   - name: networking
-    # The host owns the stable ingress addresses used by Docker's bridge
-    # published ports.  Keep these on the VLAN instead of assigning them to
-    # containers so traffic does not traverse Docker ipvlan routing.
-    addresses:
-      - "{{ ip_reverse_proxy }}/24"
-    nameservers:
-      search:
-        - "{{ domain_lan }}"
-      addresses:
-        # A Linux host cannot directly reach a container on an ipvlan child
-        # interface. DNS0 remains reachable to LAN clients at 10.40.1.2, but
-        # docker0 itself uses pfSense for its host-level resolver.
-        - "{{ vlan_networking.ip }}.1"
-    routes:
-      # Return traffic for Docker ports published on the networking VLAN must
-      # traverse pfSense, which received the original connection on management.
-      - to: "{{ vlan_management.ip }}.0/24"
-        via: "{{ vlan_networking.ip }}.1"
-        table: 101
-    routing_policies:
-      # Route only replies to connections received on the published proxy IP.
-      # connection_mark_routing restores this mark before Docker reverse-DNAT
-      # selects the egress route.
-      - mark: 1
-        to: "{{ vlan_management.ip }}.0/24"
-        table: 101
-        priority: 100
-connection_mark_routing:
-  ingress_interface: eth-serv.401
-  ingress_address: "{{ ip_reverse_proxy }}"
-  mark: 1
 vlans_extras:
   eth-mgmt:
     match:

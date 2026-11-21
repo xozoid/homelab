@@ -4,8 +4,15 @@ reverse_proxy_network: "{{ docker_services_network | default('services') }}"
 # Additional networks for upstreams that intentionally remain outside the
 # shared services bridge, such as DNS0 on the networking VLAN.
 reverse_proxy_extra_networks: []
+reverse_proxy_networks: "{{ [{'name': reverse_proxy_network}] + reverse_proxy_extra_networks }}"
+reverse_proxy_default_gateway_network: ""
+reverse_proxy_default_gateway_ipv4_address: ""
+reverse_proxy_default_gateway_priority: 1
 # Host address on which the public HTTP(S) ingress is published.
 reverse_proxy_ip:
+reverse_proxy_published_ports:
+  - "{{ reverse_proxy_ip }}:80:80/tcp"
+  - "{{ reverse_proxy_ip }}:443:443/tcp"
 reverse_proxy_wildcard: "{{ ansible_domain }}"
 reverse_proxy_name: reverse-proxy
 reverse_proxy_conf: default

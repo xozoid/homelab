@@ -31,6 +31,12 @@
         - name: linda GUI
           url: "https://linda.{{ domain_lan }}"
           no_ssl: true
+        - name: leela GUI
+          url: "https://leela.{{ domain_lan }}"
+          no_ssl: true
+        - name: sal GUI
+          url: "https://sal.{{ domain_lan }}"
+          no_ssl: true
         - name: nibbler GUI
           url: "https://nibbler.{{ domain_lan }}"
         - name: pfsense.nibbler GUI

@@ -97,6 +97,9 @@
         - name: nummus
           host: nummus
           port: 8000
+        - name: terraforming-mars
+          host: terraforming-mars
+          port: 8080
         - name: home
           ip: "{{ ip_home_assistant }}"
           port: 8123
@@ -109,3 +112,31 @@
     - role: nginx_exporter
       become: true
       nginx_exporter_network: "{{ docker_services_network }}"
+- name: Install public reverse proxy
+  hosts: docker0.nibbler
+  roles:
+    - role: reverse_proxy
+      become: true
+      reverse_proxy_name: reverse-proxy-public
+      reverse_proxy_conf: public
+      reverse_proxy_network: "{{ docker_services_network }}"
+      reverse_proxy_networks:
+        - name: "{{ 'vlan-' + vlan_networking.name }}"
+          ipv4_address: "{{ ip_reverse_proxy_public }}"
+        - name: "{{ docker_services_network }}"
+      reverse_proxy_default_gateway_network: "{{ 'vlan-' + vlan_networking.name }}"
+      reverse_proxy_default_gateway_ipv4_address: "{{ ip_reverse_proxy_public }}"
+      reverse_proxy_published_ports: []
+      reverse_proxy_wildcard: "{{ domain }}"
+      reverse_proxy_default_cert: public
+      reverse_proxy_services:
+        - name: tm
+          host: terraforming-mars
+          port: 8080
+          cert: public
+          # NOTE: The same endpoint creates and clones games. Use the LAN
+          # proxy to create games, then share their links through this proxy.
+          server_extra: |
+            location = /api/creategame {
+                return 403;
+            }

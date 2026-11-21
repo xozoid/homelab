@@ -15,6 +15,17 @@
     owner: root
     group: root
     mode: "0755"
+- name: Create local certificate destination directories
+  ansible.builtin.file:
+    path: "{{ item.1.dest_cert | dirname }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop: "{{ cert_manager_services | subelements('hosts') }}"
+  loop_control:
+    label: "{{ item.1.dest_cert }}"
+  when: item.1.host == inventory_hostname
 - name: Create ansible scripts folder
   ansible.builtin.file:
     path: /etc/ansible_scripts
@@ -89,9 +100,12 @@
     owner: root
     group: root
     mode: "0600"
+- name: Initialize list of domains
+  ansible.builtin.set_fact:
+    cert_manager_certs: []
 - name: Create list of domains
   ansible.builtin.set_fact:
-    cert_manager_certs: "{{ (certs | default([])) + cert }}"
+    cert_manager_certs: "{{ cert_manager_certs + cert }}"
   vars:
     certs_default:
       - email: "{{ cert_manager_email }}"

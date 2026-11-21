@@ -49,3 +49,21 @@
           API_KEY: "{{ cloudflare_ddns_api_token }}"
           SUBDOMAIN: site01
           PROXIED: "false"
+    - name: Install Terraforming Mars dynamic DNS
+      become: true
+      community.docker.docker_container:
+        name: ddns-terraforming-mars
+        image: oznu/cloudflare-ddns:latest
+        log_driver: "{{ docker_log_driver }}"
+        log_options: "{{ docker_log_options }}"
+        networks:
+          - name: "{{ docker_services_network }}"
+        comparisons:
+          networks: strict
+        restart_policy: unless-stopped
+        state: started
+        env:
+          ZONE: "{{ domain }}"
+          API_KEY: "{{ cloudflare_ddns_api_token }}"
+          SUBDOMAIN: tm
+          PROXIED: "false"

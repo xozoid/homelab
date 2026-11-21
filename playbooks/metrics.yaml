@@ -127,6 +127,8 @@
         - name: ntp-node
           static_configs:
             - targets: ["{{ ip_ntp }}:9100"]
+              labels:
+                host: clock
         - name: nginx
           static_configs:
             - targets: ["nginx-exporter:4040"]

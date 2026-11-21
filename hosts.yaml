@@ -42,6 +42,8 @@ eth_ifupdown:
 nodes:
   hosts:
     nibbler:
+    docker0.nibbler:
+    dns1.nibbler:
 docker:
   hosts:
     docker0.nibbler:

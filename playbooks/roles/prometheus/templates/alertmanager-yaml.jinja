@@ -12,7 +12,7 @@ inhibit_rules:
       severity: "error"
     target_match:
       severity: "warn"
-    equal: ["alertname"]
+    equal: ["alertname", "instance", "mountpoint"]
 receivers:
   - name: discord-notify
 {% if prometheus_alertmanager_discord %}

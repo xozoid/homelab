@@ -20,6 +20,13 @@
       cert_manager_api_token: "{{ cloudflare_certbot_api_token }}"
       cert_manager_discord: "{{ certbot_discord }}"
       cert_manager_services:
+        - domain: "terraforming-mars.{{ domain }}"
+          hosts:
+            - host: docker0.nibbler
+              cmd: >-
+                if docker inspect reverse-proxy-public >/dev/null 2>&1; then docker restart reverse-proxy-public; fi
+              dest_cert: /etc/nginx/certs/public.pem
+              dest_key: /etc/nginx/certs/public.key
         - domain: "*.{{ domain_lan }}"
           hosts:
             # For reverse-proxy/

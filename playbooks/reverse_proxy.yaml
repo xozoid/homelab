@@ -83,9 +83,10 @@
         - name: dns0-exporter
           ip: "{{ ip_dns_exporter_0 }}"
           port: 9617
-        - name: ntp-exporter
-          host: ntp-exporter
-          port: 9123
+        - name: clock
+          ip: "{{ ip_ntp }}"
+          scheme: https
+          port: 443
         - name: nginx-exporter
           host: nginx-exporter
           port: 4040

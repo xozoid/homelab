@@ -45,6 +45,8 @@
           url: "https://prometheus.{{ domain_lan }}"
         - name: grafana GUI
           url: "https://grafana.{{ domain_lan }}"
+        - name: clock GUI
+          url: "https://clock.{{ domain_lan }}"
         - name: nummus GUI
           url: "https://nummus.{{ domain_lan }}/status"
         - name: home assistant GUI

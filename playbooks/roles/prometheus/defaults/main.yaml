@@ -10,6 +10,8 @@ prometheus_jobs: []
 #     - targets: [ "192.168.1.2:8000" ]
 
 prometheus_network: services
+prometheus_management_network: ""
+prometheus_management_ip: ""
 prometheus_grafana_network: services
 prometheus_alertmanager_network: services
 prometheus_alertmanager_discord:

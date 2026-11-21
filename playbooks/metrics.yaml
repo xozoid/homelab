@@ -44,26 +44,6 @@
           PIHOLE_HOSTNAME: "{{ ip_dns_1 }}"
           PIHOLE_PASSWORD: "{{ pihole_admin_password }}"
           PORT: "9617"
-    - name: Remove speedtest-exporter
-      become: true
-      community.docker.docker_container:
-        name: speed-test
-        state: absent
-    - name: Install ntp-exporter
-      become: true
-      community.docker.docker_container:
-        name: ntp-exporter
-        image: quay.io/superq/chrony-exporter:v0.10.1
-        image_name_mismatch: recreate
-        log_driver: "{{ docker_log_driver }}"
-        log_options: "{{ docker_log_options }}"
-        command: --chrony.address="{{ ip_ntp }}:323" --collector.tracking --no-collector.sources
-        networks:
-          - name: services
-        comparisons:
-          networks: strict
-        restart_policy: unless-stopped
-        state: started
     - name: Install pve-exporter
       become: true
       community.docker.docker_container:
@@ -124,6 +104,8 @@
     - role: prometheus
       become: true
       prometheus_network: services
+      prometheus_management_network: "{{ 'vlan-' + vlan_management.name }}"
+      prometheus_management_ip: "{{ ip_prometheus }}"
       prometheus_alertmanager_network: services
       prometheus_alertmanager_discord: "{{ alertmanager_discord }}"
       prometheus_grafana_network: services
@@ -141,7 +123,12 @@
                 host: "dns1"
         - name: time
           static_configs:
-            - targets: ["ntp-exporter:9123"]
+            - targets: ["{{ ip_ntp }}:9101"]
+        - name: ntp-node
+          static_configs:
+            - targets: ["{{ ip_ntp }}:9100"]
+              labels:
+                host: clock
         - name: nginx
           static_configs:
             - targets: ["nginx-exporter:4040"]

@@ -3,6 +3,8 @@
   import_playbook: playbooks/networking.yaml
 - name: Proxmox
   import_playbook: playbooks/proxmox.yaml
+- name: SMART self-tests
+  import_playbook: playbooks/smart.yaml
 - name: Docker
   import_playbook: playbooks/docker.yaml
 - name: DNS

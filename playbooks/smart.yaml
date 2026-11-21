@@ -1,0 +1,30 @@
+---
+- name: Schedule SMART self-tests
+  hosts: nibbler
+  become: true
+  tasks:
+    - name: Install smartmontools
+      ansible.builtin.apt:
+        name: smartmontools
+        state: present
+    - name: Install SMART self-test script
+      ansible.builtin.copy:
+        src: files/smart-self-test.sh
+        dest: /usr/local/sbin/smart-self-test
+        mode: "0755"
+    - name: Schedule daily short SMART self-tests
+      ansible.builtin.cron:
+        name: SMART short self-tests
+        user: root
+        minute: "0"
+        hour: "2"
+        day: "2-31"
+        job: /usr/local/sbin/smart-self-test short
+    - name: Schedule monthly long SMART self-tests
+      ansible.builtin.cron:
+        name: SMART long self-tests
+        user: root
+        minute: "0"
+        hour: "2"
+        day: "1"
+        job: /usr/local/sbin/smart-self-test long

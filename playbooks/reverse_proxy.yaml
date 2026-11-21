@@ -134,3 +134,9 @@
           host: terraforming-mars
           port: 8080
           cert: public
+          # NOTE: The same endpoint creates and clones games. Use the LAN
+          # proxy to create games, then share their links through this proxy.
+          server_extra: |
+            location = /api/creategame {
+                return 403;
+            }

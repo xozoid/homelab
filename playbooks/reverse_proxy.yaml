@@ -130,7 +130,7 @@
       reverse_proxy_wildcard: "{{ domain }}"
       reverse_proxy_default_cert: public
       reverse_proxy_services:
-        - name: terraforming-mars
+        - name: tm
           host: terraforming-mars
           port: 8080
           cert: public

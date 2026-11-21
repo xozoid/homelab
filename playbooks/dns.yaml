@@ -65,5 +65,5 @@
         env:
           ZONE: "{{ domain }}"
           API_KEY: "{{ cloudflare_ddns_api_token }}"
-          SUBDOMAIN: terraforming-mars
+          SUBDOMAIN: tm
           PROXIED: "false"

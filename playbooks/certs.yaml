@@ -20,7 +20,7 @@
       cert_manager_api_token: "{{ cloudflare_certbot_api_token }}"
       cert_manager_discord: "{{ certbot_discord }}"
       cert_manager_services:
-        - domain: "terraforming-mars.{{ domain }}"
+        - domain: "tm.{{ domain }}"
           hosts:
             - host: docker0.nibbler
               cmd: >-

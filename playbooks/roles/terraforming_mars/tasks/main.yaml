@@ -1,0 +1,35 @@
+---
+- name: Clone Terraforming Mars
+  ansible.builtin.git:
+    repo: https://github.com/terraforming-mars/terraforming-mars.git
+    dest: /opt/terraforming-mars
+    version: main
+  register: terraforming_mars_source
+- name: Build Terraforming Mars image
+  community.docker.docker_image:
+    name: terraforming-mars:local
+    source: build
+    force_source: "{{ terraforming_mars_source.changed }}"
+    build:
+      path: /opt/terraforming-mars
+- name: Create Terraforming Mars database volume
+  community.docker.docker_volume:
+    name: terraforming-mars-db
+    state: present
+- name: Install Terraforming Mars
+  community.docker.docker_container:
+    name: terraforming-mars
+    image: terraforming-mars:local
+    image_name_mismatch: recreate
+    log_driver: "{{ docker_log_driver }}"
+    log_options: "{{ docker_log_options }}"
+    networks:
+      - name: "{{ docker_services_network }}"
+    comparisons:
+      networks: strict
+    restart_policy: unless-stopped
+    security_opts:
+      - no-new-privileges:true
+    state: started
+    volumes:
+      - terraforming-mars-db:/usr/src/app/db

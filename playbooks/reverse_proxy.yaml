@@ -97,6 +97,9 @@
         - name: nummus
           host: nummus
           port: 8000
+        - name: terraforming-mars
+          host: terraforming-mars
+          port: 8080
         - name: home
           ip: "{{ ip_home_assistant }}"
           port: 8123

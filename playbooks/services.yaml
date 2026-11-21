@@ -4,3 +4,8 @@
   roles:
     - role: nummus
       nummus_network: services
+- name: Install Terraforming Mars
+  hosts: docker0.nibbler
+  roles:
+    - role: terraforming_mars
+      become: true

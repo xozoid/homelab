@@ -23,3 +23,32 @@ groups:
 {% raw %}
           summary: "Instance {{ $labels.instance }} down"
           description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 2m.{% endraw -%}"
+
+  - name: filesystem space rules
+    rules:
+      - alert: filesystem_low_space
+        expr: |
+          100 * node_filesystem_avail_bytes{job=~"nodes|ntp-node",fstype!~"tmpfs|overlay|squashfs|rootfs"}
+            / node_filesystem_size_bytes{job=~"nodes|ntp-node",fstype!~"tmpfs|overlay|squashfs|rootfs"} < 20
+          and node_filesystem_readonly == 0
+        for: 5m
+        labels:
+          severity: warn
+        annotations:
+{% raw %}
+          summary: "Low disk space on {{ $labels.host }}:{{ $labels.mountpoint }}"
+          description: "{{ $labels.mountpoint }} on {{ $labels.host }} has {{ printf \"%.1f\" $value }}% available."
+{% endraw %}
+      - alert: filesystem_low_space
+        expr: |
+          100 * node_filesystem_avail_bytes{job=~"nodes|ntp-node",fstype!~"tmpfs|overlay|squashfs|rootfs"}
+            / node_filesystem_size_bytes{job=~"nodes|ntp-node",fstype!~"tmpfs|overlay|squashfs|rootfs"} < 10
+          and node_filesystem_readonly == 0
+        for: 5m
+        labels:
+          severity: error
+        annotations:
+{% raw %}
+          summary: "Critical disk space on {{ $labels.host }}:{{ $labels.mountpoint }}"
+          description: "{{ $labels.mountpoint }} on {{ $labels.host }} has {{ printf \"%.1f\" $value }}% available."
+{% endraw %}

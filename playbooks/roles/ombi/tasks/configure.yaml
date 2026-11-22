@@ -1,0 +1,204 @@
+---
+- name: Inspect Ombi container
+  community.docker.docker_container_info:
+    name: ombi
+  register: ombi_container
+- name: Inspect Ombi configuration volume
+  community.docker.docker_volume_info:
+    name: ombi-config
+  register: ombi_volume
+- name: Read Ombi API key from its settings database
+  ansible.builtin.command:
+    argv:
+      - python3
+      - -c
+      - |-
+        import json, sqlite3, sys;
+        db = sqlite3.connect('file:' + sys.argv[1] + '?mode=ro', uri=True);
+        print(json.loads(db.execute("select Content from GlobalSettings where SettingsName='OmbiSettings'").fetchone()[0])['ApiKey'])
+      - "{{ ombi_volume.volume.Mountpoint }}/OmbiSettings.db"
+  register: ombi_api_key
+  changed_when: false
+  retries: 20
+  delay: 3
+  until: ombi_api_key.rc == 0
+  no_log: true
+- name: Set Ombi API address
+  ansible.builtin.set_fact:
+    ombi_api_url: "http://{{ ombi_container.container.NetworkSettings.Networks[docker_services_network].IPAddress }}:3579/api/v1"
+- name: Read Plex server identity
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - ombi
+      - curl
+      - --fail
+      - --silent
+      - --show-error
+      - --max-time
+      - "10"
+      - "http://{{ ip_plex }}:32400/identity"
+  register: ombi_plex_identity
+  changed_when: false
+- name: Extract Plex machine identifier
+  ansible.builtin.set_fact:
+    ombi_plex_machine_id: "{{ ombi_plex_identity.stdout | regex_search('machineIdentifier=\"([^\"]+)\"', '\\1') | first }}"
+- name: Verify Plex token and library access
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - ombi
+      - curl
+      - --fail
+      - --silent
+      - --show-error
+      - --max-time
+      - "10"
+      - --output
+      - /dev/null
+      - --header
+      - "X-Plex-Token: {{ vault_plex_token }}"
+      - "http://{{ ip_plex }}:32400/library/sections"
+  changed_when: false
+  no_log: true
+- name: Read Ombi Plex settings
+  ansible.builtin.uri:
+    url: "{{ ombi_api_url }}/Settings/plex"
+    headers:
+      ApiKey: "{{ ombi_api_key.stdout }}"
+  register: ombi_plex_current
+  retries: 20
+  delay: 3
+  until: ombi_plex_current.status | default(0) == 200
+  no_log: true
+- name: Select existing Plex server
+  ansible.builtin.set_fact:
+    ombi_plex_existing: "{{ ombi_plex_current.json.servers | default([], true) | selectattr('machineIdentifier', 'equalto', ombi_plex_machine_id) | list }}"
+  no_log: true
+- name: Construct Plex server settings
+  ansible.builtin.set_fact:
+    ombi_plex_server: |-
+      {{ (ombi_plex_existing | first | default({'id': 1, 'name': 'Plex'})) | combine({
+        'ip': ip_plex, 'port': 32400, 'ssl': false,
+        'machineIdentifier': ombi_plex_machine_id, 'plexAuthToken': vault_plex_token
+      }) }}
+  no_log: true
+- name: Construct desired Plex settings
+  ansible.builtin.set_fact:
+    ombi_plex_desired: |-
+      {{ ombi_plex_current.json | combine({
+        'enable': true,
+        'monitorAll': true,
+        'servers': [ombi_plex_server] + (ombi_plex_current.json.servers | default([], true) | rejectattr('machineIdentifier', 'equalto', ombi_plex_machine_id) | list)
+      }) }}
+  no_log: true
+- name: Save Ombi Plex settings
+  ansible.builtin.uri:
+    url: "{{ ombi_api_url }}/Settings/plex"
+    method: POST
+    headers:
+      ApiKey: "{{ ombi_api_key.stdout }}"
+    body_format: json
+    body: "{{ ombi_plex_desired }}"
+  register: ombi_plex_saved
+  failed_when: not ombi_plex_saved.json | bool
+  changed_when: true
+  when: ombi_plex_current.json != ombi_plex_desired
+  no_log: true
+- name: Read Ombi users
+  ansible.builtin.uri:
+    url: "{{ ombi_api_url }}/Identity/Users"
+    headers:
+      ApiKey: "{{ ombi_api_key.stdout }}"
+  register: ombi_users
+  no_log: true
+- name: Read Plex account for the administrator
+  ansible.builtin.uri:
+    url: https://plex.tv/api/v2/user
+    headers:
+      X-Plex-Token: "{{ vault_plex_token }}"
+      Accept: application/json
+  register: ombi_plex_account
+  no_log: true
+- name: Find Ombi administrators
+  ansible.builtin.set_fact:
+    ombi_admin_exists: "{{ ombi_admin_exists | default(false) or ('Admin' in (item.claims | selectattr('enabled') | map(attribute='value') | list)) }}"
+    ombi_plex_admin_exists: "{{ ombi_plex_admin_exists | default(false) or (item.userName | lower == ombi_plex_account.json.username | lower and 'Admin' in (item.claims | selectattr('enabled') | map(attribute='value') | list)) }}"
+  loop: "{{ ombi_users.json }}"
+  no_log: true
+- name: Check for a conflicting existing administrator
+  ansible.builtin.assert:
+    that:
+      - not ombi_admin_exists | default(false) | bool or ombi_plex_admin_exists | default(false) | bool
+    fail_msg: An Ombi administrator already exists for a different account. Import the Plex account and grant it administrator access before continuing.
+- name: Create Plex administrator
+  ansible.builtin.uri:
+    url: "{{ ombi_api_url }}/Identity/Wizard"
+    method: POST
+    body_format: json
+    body:
+      usePlexAdminAccount: true
+  register: ombi_admin_created
+  failed_when: not ombi_admin_created.json.result | bool
+  changed_when: true
+  when: not ombi_admin_exists | default(false) | bool
+  no_log: true
+- name: Read Ombi authentication settings
+  ansible.builtin.uri:
+    url: "{{ ombi_api_url }}/Settings/authentication"
+  register: ombi_auth
+- name: Read Ombi customization settings
+  ansible.builtin.uri:
+    url: "{{ ombi_api_url }}/Settings/customization"
+    headers:
+      ApiKey: "{{ ombi_api_key.stdout }}"
+  register: ombi_customization
+  no_log: true
+- name: Set Ombi application URL
+  ansible.builtin.uri:
+    url: "{{ ombi_api_url }}/Settings/customization"
+    method: POST
+    headers:
+      ApiKey: "{{ ombi_api_key.stdout }}"
+    body_format: json
+    body: "{{ ombi_customization.json | combine({'applicationUrl': 'https://ombi.' ~ domain_lan}) }}"
+  register: ombi_customization_saved
+  failed_when: not ombi_customization_saved.json | bool
+  changed_when: true
+  when: ombi_customization.json.applicationUrl != 'https://ombi.' ~ domain_lan
+  no_log: true
+- name: Enable Plex login
+  ansible.builtin.uri:
+    url: "{{ ombi_api_url }}/Settings/authentication"
+    method: POST
+    headers:
+      ApiKey: "{{ ombi_api_key.stdout }}"
+    body_format: json
+    body: "{{ ombi_auth.json | combine({'enableOAuth': true}) }}"
+  register: ombi_auth_saved
+  failed_when: not ombi_auth_saved.json | bool
+  changed_when: true
+  when: not ombi_auth.json.enableOAuth | bool
+  no_log: true
+- name: Read Ombi general settings
+  ansible.builtin.uri:
+    url: "{{ ombi_api_url }}/Settings/ombi"
+    headers:
+      ApiKey: "{{ ombi_api_key.stdout }}"
+  register: ombi_settings
+  no_log: true
+- name: Complete Ombi setup
+  ansible.builtin.uri:
+    url: "{{ ombi_api_url }}/Settings/ombi"
+    method: POST
+    headers:
+      ApiKey: "{{ ombi_api_key.stdout }}"
+    body_format: json
+    body: "{{ ombi_settings.json }}"
+  register: ombi_settings_saved
+  failed_when: not ombi_settings_saved.json | bool
+  changed_when: true
+  when: not ombi_settings.json.wizard | bool
+  no_log: true

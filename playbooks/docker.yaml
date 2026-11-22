@@ -78,3 +78,15 @@
             gateway: "{{ vlan_automation.ip }}.1"
         state: present
       when: runs_reverse_proxy | default(false) | bool
+    - name: Create servers ipvlan network
+      become: true
+      community.docker.docker_network:
+        name: "{{ 'vlan-' + vlan_servers.name }}"
+        driver: ipvlan
+        driver_options:
+          parent: "eth-serv.{{ vlan_servers.id }}"
+        ipam_config:
+          - subnet: "{{ vlan_servers.ip }}.0/24"
+            gateway: "{{ vlan_servers.ip }}.1"
+        state: present
+      when: inventory_hostname == 'docker0.nibbler'

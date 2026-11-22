@@ -1,0 +1,28 @@
+---
+- name: Create Ombi configuration volume
+  community.docker.docker_volume:
+    name: ombi-config
+    state: present
+- name: Install Ombi
+  community.docker.docker_container:
+    name: ombi
+    image: lscr.io/linuxserver/ombi:latest
+    image_name_mismatch: recreate
+    log_driver: "{{ docker_log_driver }}"
+    log_options: "{{ docker_log_options }}"
+    pull: always
+    networks:
+      - name: "{{ docker_services_network }}"
+      - name: "{{ 'vlan-' + vlan_servers.name }}"
+        ipv4_address: "{{ ip_ombi }}"
+    comparisons:
+      networks: strict
+    restart_policy: unless-stopped
+    state: started
+    env:
+      TZ: "{{ timezone }}"
+    volumes:
+      - ombi-config:/config
+- name: Configure Ombi
+  ansible.builtin.import_tasks: configure.yaml
+  when: not ansible_check_mode

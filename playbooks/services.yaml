@@ -8,4 +8,7 @@
   hosts: docker0.nibbler
   roles:
     - role: terraforming_mars
-      become: true
+- name: Install Ombi
+  hosts: docker0.nibbler
+  roles:
+    - role: ombi

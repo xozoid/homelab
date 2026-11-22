@@ -12,6 +12,7 @@ runs_reverse_proxy: true
 vlans:
   - name: management
   - name: networking
+  - name: servers
 vlans_extras:
   eth-mgmt:
     match:
